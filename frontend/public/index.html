@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SynFlow</title>
+<style>
+:root {
+  --bg:#111827; --panel:#1f2937; --panel2:#243041; --line:#334155; --text:#e5e7eb; --muted:#94a3b8;
+  --accent:#7c3aed; --accent2:#ec4899; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea,select{font:inherit}
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box,.modal,.panel,.tour-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.login-box{width:100%;max-width:420px;padding:32px}
+.logo{font-size:34px;font-weight:800;letter-spacing:.04em}.logo span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);margin:6px 0 24px}
+.row{display:grid;gap:14px}.row.two{grid-template-columns:1fr 1fr}.row.three{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.row.two,.row.three{grid-template-columns:1fr}}
+label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+input,textarea,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:#0f172a;color:var(--text)}
+textarea{min-height:90px;resize:vertical}
+.btn{border:none;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:700}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white}
+.btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.btn-danger{background:var(--danger);color:white}.btn-small{padding:8px 10px;font-size:13px}
+.error,.success{display:none;margin-top:14px;padding:10px 12px;border-radius:10px}.error{background:rgba(239,68,68,.12);color:#fecaca}.success{background:rgba(34,197,94,.12);color:#bbf7d0}
+#app{display:none}
+.header{position:sticky;top:0;z-index:20;background:rgba(17,24,39,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.header .grow{flex:1}.user-pill,.badge{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);font-size:13px}
+.badge.ok{color:#86efac}.badge.warn{color:#fde68a}.badge.offen{color:#cbd5e1}
+.main{padding:18px;max-width:1600px;margin:0 auto}
+.tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tab-btn.active{outline:2px solid rgba(124,58,237,.45)}
+.panel{padding:16px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}@media(max-width:1200px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px}
+.section-title{font-size:20px;font-weight:800;letter-spacing:.03em}
+.tour-card{overflow:hidden;position:relative}.tour-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.tour-body{padding:14px;display:grid;gap:10px}.tour-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:700px){.tour-cols{grid-template-columns:1fr}}
+.tour-box{padding:12px;border:1px solid var(--line);border-radius:12px;background:#0f172a;min-height:130px}.tour-box h4{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tour-meta{display:flex;gap:8px;flex-wrap:wrap}.mini{font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)} .empty{opacity:.8;font-style:italic}
+.card-actions{display:flex;gap:8px;flex-wrap:wrap}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left}.table th{color:var(--muted);font-size:12px;text-transform:uppercase}
+.modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:50;padding:24px;overflow:auto}.modal{max-width:980px;margin:0 auto;padding:20px}
+.modal.small{max-width:520px}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer}
+.toast{position:fixed;right:18px;bottom:18px;background:var(--panel);border:1px solid var(--line);padding:12px 14px;border-radius:12px;transform:translateY(120px);transition:.25s}.toast.show{transform:translateY(0)}
+.ott-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#0f172a;margin-bottom:10px}@media(max-width:700px){.ott-item{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-box">
+    <div class="logo"><span>SynFlow</span></div>
+    <div class="sub">Disposition für Hol- &amp; Bring-Service</div>
+    <div>
+      <label>Benutzername</label><input id="login-user" autocomplete="username">
+    </div>
+    <div style="margin-top:14px">
+      <label>Passwort</label><input id="login-pass" type="password" autocomplete="current-password">
+    </div>
+    <div style="margin-top:18px"><button class="btn btn-primary" style="width:100%" onclick="doLogin()">Anmelden</button></div>
+    <div class="error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="logo" style="font-size:28px"><span>SynFlow</span></div>
+    <div class="user-pill" id="hdr-user">–</div>
+    <input id="date-input" type="date" onchange="loadDate(this.value)">
+    <button class="btn btn-secondary btn-small" onclick="changeDate(-1)">◀</button>
+    <button class="btn btn-secondary btn-small" onclick="changeDate(1)">▶</button>
+    <button class="btn btn-secondary btn-small" onclick="loadDate(todayStr())">Heute</button>
+    <div class="grow"></div>
+    <div class="user-pill" id="live-pill">Offline</div>
+    <button class="btn btn-secondary btn-small" onclick="openPwModal()">Passwort</button>
+    <button class="btn btn-secondary btn-small" id="admin-entry" style="display:none" onclick="showTab('admin')">Admin</button>
+    <button class="btn btn-secondary btn-small" onclick="doLogout()">Abmelden</button>
+  </div>
+
+  <div class="main">
+    <div class="tabs">
+      <button class="btn btn-secondary tab-btn active" id="tab-plan" onclick="showTab('plan')">Tourenplan</button>
+      <button class="btn btn-secondary tab-btn" id="tab-admin" style="display:none" onclick="showTab('admin')">Verwaltung</button>
+    </div>
+
+    <div id="view-plan">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="row three">
+          <div><label>Aktive Fahrer</label><div id="meta-driver-count" class="muted">–</div></div>
+          <div><label>Verfügbare Leihwagen</label><div id="meta-loaner-count" class="muted">–</div></div>
+          <div><label>Hinweis</label><div class="muted">Heute sieht schon nach Disponenten-Sudoku aus.</div></div>
+        </div>
+      </div>
+
+      <div class="section-head"><div class="section-title">Vormittag</div></div>
+      <div class="grid" id="grid-vormittag"></div>
+
+      <div class="section-head"><div class="section-title">Nachmittag</div></div>
+      <div class="grid" id="grid-nachmittag"></div>
+
+      <div class="section-head">
+        <div class="section-title">Ottenschlag &amp; Umgebung</div>
+        <div class="card-actions">
+          <div class="muted" id="ott-updated"></div>
+          <button class="btn btn-secondary btn-small" id="btn-ott-add" style="display:none" onclick="addOttEintrag()">+ Eintrag</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div id="ott-list"></div>
+        <div id="ott-empty" class="muted">Keine Einträge für diesen Tag.</div>
+      </div>
+    </div>
+
+    <div id="view-admin" style="display:none">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="section-head"><div class="section-title">Benutzer</div><button class="btn btn-primary btn-small" onclick="openUserModal()">+ Benutzer</button></div>
+        <table class="table"><thead><tr><th>Name</th><th>Rolle</th><th>Angelegt</th><th>Aktionen</th></tr></thead><tbody id="users-tbody"></tbody></table>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <div class="section-head"><div class="section-title">Fahrer</div><button class="btn btn-primary btn-small" onclick="openDriverModal()">+ Fahrer</button></div>
+        <table class="table"><thead><tr><th>Name</th><th>Telefon</th><th>Status</th><th>Aktionen</th></tr></thead><tbody id="drivers-tbody"></tbody></table>
+      </div>
+      <div class="panel">
+        <div class="section-head"><div class="section-title">Leihwagen</div><button class="btn btn-primary btn-small" onclick="openLoanerModal()">+ Leihwagen</button></div>
+        <table class="table"><thead><tr><th>Name</th><th>Kennzeichen</th><th>Status</th><th>Aktionen</th></tr></thead><tbody id="loaners-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="tour-modal"><div class="modal"><div class="modal-head"><h2 id="tour-modal-title">Tour bearbeiten</h2><button class="close" onclick="closeModal('tour-modal')">×</button></div>
+  <div class="row three">
+    <div><label>Status</label><select id="m-status"><option value="offen">Offen</option><option value="geplant">Geplant</option><option value="unterwegs">Unterwegs</option><option value="erledigt">Erledigt</option></select></div>
+    <div><label>Fahrer</label><select id="m-driver"></select></div>
+    <div><label>Leihwagen</label><select id="m-loaner"></select></div>
+  </div>
+  <div class="row" style="margin-top:16px"><div><label>Kundentelefon</label><input id="m-customer-phone"></div></div>
+  <div class="row two" style="margin-top:16px">
+    <div class="tour-box">
+      <h4>Liefern</h4>
+      <div class="row">
+        <div><label>Kunde</label><input id="m-deliver-customer"></div>
+        <div><label>Adresse</label><textarea id="m-deliver-address"></textarea></div>
+        <div class="row two"><div><label>Fahrzeug</label><input id="m-deliver-vehicle"></div><div><label>Uhrzeit</label><input id="m-deliver-time" placeholder="z. B. 08:15"></div></div>
+      </div>
+    </div>
+    <div class="tour-box">
+      <h4>Abholen</h4>
+      <div class="row">
+        <div><label>Kunde</label><input id="m-pickup-customer"></div>
+        <div><label>Adresse</label><textarea id="m-pickup-address"></textarea></div>
+        <div class="row two"><div><label>Fahrzeug</label><input id="m-pickup-vehicle"></div><div><label>Uhrzeit</label><input id="m-pickup-time" placeholder="z. B. 09:45"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="row two" style="margin-top:16px">
+    <div><label>Notiz</label><textarea id="m-notes"></textarea></div>
+    <div><label>Optionen</label><div class="panel"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="m-gesperrt" style="width:auto"> Tour sperren</label></div></div>
+  </div>
+  <div class="card-actions" style="margin-top:18px;justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('tour-modal')">Abbrechen</button><button class="btn btn-primary" onclick="saveTour()">Speichern</button></div>
+</div></div>
+
+<div class="modal-wrap" id="entity-modal"><div class="modal small"><div class="modal-head"><h2 id="entity-title">Eintrag</h2><button class="close" onclick="closeModal('entity-modal')">×</button></div>
+  <div id="entity-form"></div>
+  <div class="error" id="entity-error"></div>
+  <div class="card-actions" style="margin-top:18px;justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('entity-modal')">Abbrechen</button><button class="btn btn-primary" onclick="saveEntity()">Speichern</button></div>
+</div></div>
+
+<div class="modal-wrap" id="ott-modal"><div class="modal small"><div class="modal-head"><h2>Ottenschlag-Eintrag</h2><button class="close" onclick="closeModal('ott-modal')">×</button></div>
+  <div class="row"><div><label>Text</label><textarea id="ott-text"></textarea></div><div><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ott-lw" style="width:auto"> Leihwagen steht dort</label></div></div>
+  <div class="card-actions" style="margin-top:18px;justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('ott-modal')">Abbrechen</button><button class="btn btn-primary" onclick="saveOttEintrag()">Speichern</button></div>
+</div></div>
+
+<div class="modal-wrap" id="pw-modal"><div class="modal small"><div class="modal-head"><h2>Passwort ändern</h2><button class="close" onclick="closeModal('pw-modal')">×</button></div>
+  <div class="row"><div><label>Aktuelles Passwort</label><input type="password" id="pw-current"></div><div><label>Neues Passwort</label><input type="password" id="pw-new"></div><div><label>Wiederholen</label><input type="password" id="pw-new2"></div></div>
+  <div class="error" id="pw-error"></div><div class="success" id="pw-success"></div>
+  <div class="card-actions" style="margin-top:18px;justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('pw-modal')">Schließen</button><button class="btn btn-primary" onclick="saveOwnPw()">Speichern</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<script>
+let currentUser=null,currentDate=todayStr(),toursData={vormittag:[],nachmittag:[]},ottData={eintraege:[]},meta={drivers:[],loaners:[]},editingTour=null,editingEntity=null,ottEditIndex=null,ws=null;
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+function fmtTime(iso){if(!iso) return ''; return new Date(iso).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}
+function showToast(msg,err=false){const el=document.getElementById('toast');el.textContent=msg;el.style.borderColor=err?'var(--danger)':'var(--line)';el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),3200)}
+function closeModal(id){document.getElementById(id).style.display='none'}
+document.querySelectorAll('.modal-wrap').forEach(x=>x.addEventListener('click',e=>{if(e.target===x) x.style.display='none'}));
+document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+async function api(url, opts={}){const res=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});let data=null;try{data=await res.json()}catch{} if(!res.ok) throw new Error(data?.error||'Fehler'); return data}
+
+async function doLogin(){try{const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:loginUser.value.trim(),password:loginPass.value})});currentUser=d;showApp()}catch(e){const el=document.getElementById('login-error');el.style.display='block';el.textContent=e.message}}
+async function doLogout(){await fetch('/api/logout',{method:'POST'});if(ws){ws.close();ws=null} app.style.display='none';loginScreen.style.display='flex';currentUser=null}
+async function init(){try{currentUser=await api('/api/me');showApp()}catch{}}
+
+function setHeader(){hdrUser.textContent=`${currentUser.username} · ${currentUser.role}`; if(currentUser.role==='admin'){adminEntry.style.display='inline-block';tabAdmin.style.display='inline-block'};document.getElementById('btn-ott-add').style.display=currentUser.role==='reader'?'none':'inline-block'}
+async function showApp(){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='block';document.getElementById('date-input').value=currentDate;setHeader();await loadMeta();await loadDate(currentDate);connectWS()}
+async function loadMeta(){meta=await api('/api/meta');document.getElementById('meta-driver-count').textContent=`${meta.drivers.length} aktiv`;document.getElementById('meta-loaner-count').textContent=`${meta.loaners.filter(x=>x.status==='verfuegbar').length} verfügbar`;fillSelects()}
+function fillSelects(){const dSel=document.getElementById('m-driver');const lSel=document.getElementById('m-loaner');dSel.innerHTML='<option value="">– kein Fahrer –</option>'+meta.drivers.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');lSel.innerHTML='<option value="">– kein Leihwagen –</option>'+meta.loaners.filter(x=>x.status!=='deaktiviert').map(l=>`<option value="${l.id}">${esc(l.name)} ${l.plate?`(${esc(l.plate)})`:''} · ${l.status}</option>`).join('')}
+function connectWS(){if(ws) ws.close(); const proto=location.protocol==='https:'?'wss':'ws'; ws=new WebSocket(`${proto}://${location.host}`); ws.onopen=()=>livePill.textContent='Live'; ws.onclose=()=>{livePill.textContent='Offline'; setTimeout(connectWS,3000)}; ws.onmessage=async e=>{const msg=JSON.parse(e.data); if(msg.type==='tour_updated'&&msg.data.date===currentDate){const slot=msg.data.slot; const idx=toursData[slot].findIndex(x=>x.tour_nr===msg.data.tour_nr); if(idx>=0)toursData[slot][idx]=msg.data; else toursData[slot].push(msg.data); renderTours()} if(['drivers_updated','loaners_updated'].includes(msg.type)){await loadMeta(); if(viewAdmin.style.display!=='none') await loadAdminData()} if(msg.type==='ottenschlag_updated'&&msg.data.date===currentDate){ottData=msg.data;renderOtt()}}}
+async function loadDate(d){currentDate=d;document.getElementById('date-input').value=d; const [t,o]=await Promise.all([api(`/api/tours/${d}`),api(`/api/ottenschlag/${d}`)]); toursData=t; ottData=o; renderTours(); renderOtt()}
+function changeDate(delta){const d=new Date(currentDate);d.setDate(d.getDate()+delta);loadDate(d.toISOString().slice(0,10))}
+function statusBadge(s){return `<span class="badge ${s==='geplant'?'warn':s==='erledigt'?'ok':'offen'}">${s}</span>`}
+function renderTours(){['vormittag','nachmittag'].forEach(slot=>{const grid=document.getElementById('grid-'+slot);grid.innerHTML='';for(let nr=1;nr<=4;nr++){const t=(toursData[slot]||[]).find(x=>x.tour_nr===nr)||emptyTour(slot,nr);grid.insertAdjacentHTML('beforeend',tourCardHtml(t))}})}
+function emptyTour(slot,nr){return{slot,tour_nr:nr,deliver_customer:'',deliver_address:'',deliver_vehicle:'',deliver_time:'',pickup_customer:'',pickup_address:'',pickup_vehicle:'',pickup_time:'',customer_phone:'',driver:null,loaner_vehicle:null,status:'offen',gesperrt:0,notes:'',updated_at:null,updated_by:''}}
+function tourCardHtml(t){const canEdit=currentUser.role!=='reader'; return `<div class="tour-card"><div class="tour-top"><div><strong>Tour ${t.tour_nr}</strong></div><div class="card-actions">${statusBadge(t.status)} ${t.gesperrt?'<span class="badge">gesperrt</span>':''}</div></div><div class="tour-body"><div class="tour-meta"><span class="user-pill">${t.driver?esc(t.driver.name):'kein Fahrer'}</span><span class="user-pill">${t.loaner_vehicle?esc(t.loaner_vehicle.name):'kein Leihwagen'}</span>${t.customer_phone?`<span class="user-pill">☎ ${esc(t.customer_phone)}</span>`:''}</div><div class="tour-cols"><div class="tour-box"><h4>Liefern</h4>${tourPart(t.deliver_customer,t.deliver_address,t.deliver_vehicle,t.deliver_time)}</div><div class="tour-box"><h4>Abholen</h4>${tourPart(t.pickup_customer,t.pickup_address,t.pickup_vehicle,t.pickup_time)}</div></div>${t.notes?`<div class="mini">📝 ${esc(t.notes)}</div>`:''}<div class="mini">${t.updated_at?`${esc(t.updated_by)} · ${fmtTime(t.updated_at)}`:'Noch nicht bearbeitet'}</div>${canEdit?`<div class="card-actions"><button class="btn btn-primary btn-small" onclick="openTourModal('${t.slot}',${t.tour_nr})">Bearbeiten</button></div>`:''}</div></div>`}
+function tourPart(customer,address,vehicle,time){const parts=[]; if(customer) parts.push(`<div><strong>${esc(customer)}</strong></div>`); if(address) parts.push(`<div>${esc(address)}</div>`); if(vehicle) parts.push(`<div class="mini">🚗 ${esc(vehicle)}</div>`); if(time) parts.push(`<div class="mini">🕒 ${esc(time)}</div>`); return parts.length?parts.join(''):'<div class="empty">– frei –</div>'}
+
+function openTourModal(slot,nr){const t=(toursData[slot]||[]).find(x=>x.tour_nr===nr)||emptyTour(slot,nr); editingTour={slot,nr}; document.getElementById('tour-modal-title').textContent=`Tour ${nr} – ${slot}`; fillSelects(); mStatus.value=t.status||'offen'; mDriver.value=t.driver_id||t.driver?.id||''; mLoaner.value=t.loaner_vehicle_id||t.loaner_vehicle?.id||''; mCustomerPhone.value=t.customer_phone||''; mDeliverCustomer.value=t.deliver_customer||''; mDeliverAddress.value=t.deliver_address||''; mDeliverVehicle.value=t.deliver_vehicle||''; mDeliverTime.value=t.deliver_time||''; mPickupCustomer.value=t.pickup_customer||''; mPickupAddress.value=t.pickup_address||''; mPickupVehicle.value=t.pickup_vehicle||''; mPickupTime.value=t.pickup_time||''; mNotes.value=t.notes||''; mGesperrt.checked=!!t.gesperrt; document.getElementById('tour-modal').style.display='block'}
+async function saveTour(){try{const body={status:mStatus.value,driver_id:mDriver.value||null,loaner_vehicle_id:mLoaner.value||null,customer_phone:mCustomerPhone.value,deliver_customer:mDeliverCustomer.value,deliver_address:mDeliverAddress.value,deliver_vehicle:mDeliverVehicle.value,deliver_time:mDeliverTime.value,pickup_customer:mPickupCustomer.value,pickup_address:mPickupAddress.value,pickup_vehicle:mPickupVehicle.value,pickup_time:mPickupTime.value,notes:mNotes.value,gesperrt:mGesperrt.checked}; const t=await api(`/api/tours/${currentDate}/${editingTour.slot}/${editingTour.nr}`,{method:'PUT',body:JSON.stringify(body)}); const idx=toursData[editingTour.slot].findIndex(x=>x.tour_nr===editingTour.nr); if(idx>=0)toursData[editingTour.slot][idx]=t; else toursData[editingTour.slot].push(t); renderTours(); closeModal('tour-modal'); showToast('Tour gespeichert')}catch(e){showToast(e.message,true)}}
+
+function renderOtt(){const items=ottData.eintraege||[]; ottList.innerHTML=''; ottEmpty.style.display=items.length?'none':'block'; items.forEach((it,i)=>{ottList.insertAdjacentHTML('beforeend',`<div class="ott-item"><div>${esc(it.text)}</div><div class="badge">${it.leihwagen?'Leihwagen dort':'ohne Leihwagen'}</div>${currentUser.role!=='reader'?`<div class="card-actions"><button class="btn btn-secondary btn-small" onclick="editOttEintrag(${i})">Bearbeiten</button><button class="btn btn-danger btn-small" onclick="deleteOttEintrag(${i})">Löschen</button></div>`:''}</div>`)}) ; ottUpdated.textContent=ottData.updated_at?`${ottData.updated_by} · ${fmtTime(ottData.updated_at)}`:''}
+function addOttEintrag(){ottEditIndex=null; ottText.value=''; ottLw.checked=false; document.getElementById('ott-modal').style.display='block'}
+function editOttEintrag(i){ottEditIndex=i; const it=ottData.eintraege[i]; ottText.value=it.text||''; ottLw.checked=!!it.leihwagen; document.getElementById('ott-modal').style.display='block'}
+async function saveOttEintrag(){const text=ottText.value.trim(); if(!text)return showToast('Bitte Text eingeben',true); const items=[...(ottData.eintraege||[])]; const entry={text,leihwagen:ottLw.checked}; if(ottEditIndex===null) items.push(entry); else items[ottEditIndex]=entry; try{await api(`/api/ottenschlag/${currentDate}`,{method:'PUT',body:JSON.stringify({eintraege:items})}); ottData.eintraege=items; renderOtt(); closeModal('ott-modal'); showToast('Ottenschlag gespeichert')}catch(e){showToast(e.message,true)}}
+async function deleteOttEintrag(i){if(!confirm('Eintrag löschen?'))return; const items=(ottData.eintraege||[]).filter((_,idx)=>idx!==i); try{await api(`/api/ottenschlag/${currentDate}`,{method:'PUT',body:JSON.stringify({eintraege:items})}); ottData.eintraege=items; renderOtt(); showToast('Eintrag gelöscht')}catch(e){showToast(e.message,true)}}
+
+function showTab(name){viewPlan.style.display=name==='plan'?'block':'none';viewAdmin.style.display=name==='admin'?'block':'none';document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active'); if(name==='admin') loadAdminData()}
+async function loadAdminData(){const [users,drivers,loaners]=await Promise.all([api('/api/users'),api('/api/drivers'),api('/api/loaners')]); usersTbody.innerHTML=users.map(u=>`<tr><td><strong>${esc(u.username)}</strong>${u.username===currentUser.username?' <span class="mini">(du)</span>':''}</td><td>${esc(u.role)}</td><td>${new Date(u.created_at).toLocaleDateString('de-AT')}</td><td><div class="card-actions"><button class="btn btn-secondary btn-small" onclick='openUserModal(${JSON.stringify(JSON.stringify(u))})'>Bearbeiten</button>${u.username!==currentUser.username?`<button class="btn btn-danger btn-small" onclick="deleteUser(${u.id},'${esc(u.username)}')">Löschen</button>`:''}</div></td></tr>`).join(''); driversTbody.innerHTML=drivers.map(d=>`<tr><td><strong>${esc(d.name)}</strong></td><td>${esc(d.phone||'')}</td><td>${d.active?'aktiv':'inaktiv'}</td><td><div class="card-actions"><button class="btn btn-secondary btn-small" onclick='openDriverModal(${JSON.stringify(JSON.stringify(d))})'>Bearbeiten</button><button class="btn btn-danger btn-small" onclick="deleteDriver(${d.id},'${esc(d.name)}')">Löschen</button></div></td></tr>`).join(''); loanersTbody.innerHTML=loaners.map(l=>`<tr><td><strong>${esc(l.name)}</strong></td><td>${esc(l.plate||'')}</td><td>${esc(l.status)}</td><td><div class="card-actions"><button class="btn btn-secondary btn-small" onclick='openLoanerModal(${JSON.stringify(JSON.stringify(l))})'>Bearbeiten</button><button class="btn btn-danger btn-small" onclick="deleteLoaner(${l.id},'${esc(l.name)}')">Löschen</button></div></td></tr>`).join('')}
+
+function renderEntityForm(type,data={}){let html=''; if(type==='user'){html=`<div class="row"><div style="${data.id?'display:none':''}"><label>Benutzername</label><input id="e-username" value="${data.username||''}"></div><div><label>Rolle</label><select id="e-role"><option value="reader">reader</option><option value="writer">writer</option><option value="admin">admin</option></select></div><div><label>${data.id?'Neues Passwort (leer = unverändert)':'Passwort'}</label><input id="e-password" type="password"></div></div>`; setTimeout(()=>{document.getElementById('e-role').value=data.role||'reader'},0)} if(type==='driver'){html=`<div class="row"><div><label>Name</label><input id="e-name" value="${data.name||''}"></div><div><label>Telefon</label><input id="e-phone" value="${data.phone||''}"></div><div><label>Notiz</label><textarea id="e-notes">${data.notes||''}</textarea></div><div><label style="display:flex;gap:8px;align-items:center"><input id="e-active" type="checkbox" style="width:auto" ${data.active===0?'':'checked'}> Aktiv</label></div></div>`} if(type==='loaner'){html=`<div class="row"><div><label>Name</label><input id="e-name" value="${data.name||''}"></div><div><label>Kennzeichen</label><input id="e-plate" value="${data.plate||''}"></div><div><label>Status</label><select id="e-status"><option value="verfuegbar">verfuegbar</option><option value="werkstatt">werkstatt</option><option value="reserviert">reserviert</option><option value="deaktiviert">deaktiviert</option></select></div><div><label>Notiz</label><textarea id="e-notes">${data.notes||''}</textarea></div></div>`; setTimeout(()=>{document.getElementById('e-status').value=data.status||'verfuegbar'},0)} document.getElementById('entity-form').innerHTML=html}
+function openUserModal(json){editingEntity={type:'user',data:json?JSON.parse(JSON.parse(json)):{}}; entityTitle.textContent=editingEntity.data.id?'Benutzer bearbeiten':'Benutzer anlegen'; renderEntityForm('user',editingEntity.data); entityError.style.display='none'; document.getElementById('entity-modal').style.display='block'}
+function openDriverModal(json){editingEntity={type:'driver',data:json?JSON.parse(JSON.parse(json)):{active:1}}; entityTitle.textContent=editingEntity.data.id?'Fahrer bearbeiten':'Fahrer anlegen'; renderEntityForm('driver',editingEntity.data); entityError.style.display='none'; document.getElementById('entity-modal').style.display='block'}
+function openLoanerModal(json){editingEntity={type:'loaner',data:json?JSON.parse(JSON.parse(json)):{status:'verfuegbar'}}; entityTitle.textContent=editingEntity.data.id?'Leihwagen bearbeiten':'Leihwagen anlegen'; renderEntityForm('loaner',editingEntity.data); entityError.style.display='none'; document.getElementById('entity-modal').style.display='block'}
+async function saveEntity(){try{let method='POST',url='',body={}; const d=editingEntity.data; if(editingEntity.type==='user'){url=d.id?`/api/users/${d.id}`:'/api/users'; method=d.id?'PUT':'POST'; body={role:document.getElementById('e-role').value}; const pw=document.getElementById('e-password').value; if(d.id){if(pw) body.newPassword=pw}else{body.username=document.getElementById('e-username').value.trim(); body.password=pw}} if(editingEntity.type==='driver'){url=d.id?`/api/drivers/${d.id}`:'/api/drivers'; method=d.id?'PUT':'POST'; body={name:document.getElementById('e-name').value.trim(),phone:document.getElementById('e-phone').value.trim(),notes:document.getElementById('e-notes').value.trim(),active:document.getElementById('e-active').checked}} if(editingEntity.type==='loaner'){url=d.id?`/api/loaners/${d.id}`:'/api/loaners'; method=d.id?'PUT':'POST'; body={name:document.getElementById('e-name').value.trim(),plate:document.getElementById('e-plate').value.trim(),status:document.getElementById('e-status').value,notes:document.getElementById('e-notes').value.trim()}} await api(url,{method,body:JSON.stringify(body)}); closeModal('entity-modal'); await loadMeta(); await loadAdminData(); showToast('Gespeichert')}catch(e){entityError.style.display='block';entityError.textContent=e.message}}
+async function deleteUser(id,name){if(!confirm(`Benutzer ${name} löschen?`))return; try{await api(`/api/users/${id}`,{method:'DELETE'}); await loadAdminData(); showToast('Benutzer gelöscht')}catch(e){showToast(e.message,true)}}
+async function deleteDriver(id,name){if(!confirm(`Fahrer ${name} löschen?`))return; try{await api(`/api/drivers/${id}`,{method:'DELETE'}); await loadMeta(); await loadAdminData(); showToast('Fahrer gelöscht')}catch(e){showToast(e.message,true)}}
+async function deleteLoaner(id,name){if(!confirm(`Leihwagen ${name} löschen?`))return; try{await api(`/api/loaners/${id}`,{method:'DELETE'}); await loadMeta(); await loadAdminData(); showToast('Leihwagen gelöscht')}catch(e){showToast(e.message,true)}}
+
+function openPwModal(){pwCurrent.value='';pwNew.value='';pwNew2.value='';pwError.style.display='none';pwSuccess.style.display='none';document.getElementById('pw-modal').style.display='block'}
+async function saveOwnPw(){pwError.style.display='none';pwSuccess.style.display='none'; if(!pwCurrent.value||!pwNew.value||!pwNew2.value){pwError.style.display='block';pwError.textContent='Alle Felder ausfüllen'; return} if(pwNew.value!==pwNew2.value){pwError.style.display='block';pwError.textContent='Passwörter stimmen nicht überein'; return} try{await api('/api/me/password',{method:'PUT',body:JSON.stringify({currentPassword:pwCurrent.value,newPassword:pwNew.value})}); pwSuccess.style.display='block';pwSuccess.textContent='Passwort geändert'}catch(e){pwError.style.display='block';pwError.textContent=e.message}}
+
+const loginUser=document.getElementById('login-user'),loginPass=document.getElementById('login-pass'),loginScreen=document.getElementById('login-screen'),app=document.getElementById('app'),hdrUser=document.getElementById('hdr-user'),adminEntry=document.getElementById('admin-entry'),tabAdmin=document.getElementById('tab-admin'),livePill=document.getElementById('live-pill'),viewPlan=document.getElementById('view-plan'),viewAdmin=document.getElementById('view-admin'),usersTbody=document.getElementById('users-tbody'),driversTbody=document.getElementById('drivers-tbody'),loanersTbody=document.getElementById('loaners-tbody'),entityTitle=document.getElementById('entity-title'),entityError=document.getElementById('entity-error'),mStatus=document.getElementById('m-status'),mDriver=document.getElementById('m-driver'),mLoaner=document.getElementById('m-loaner'),mCustomerPhone=document.getElementById('m-customer-phone'),mDeliverCustomer=document.getElementById('m-deliver-customer'),mDeliverAddress=document.getElementById('m-deliver-address'),mDeliverVehicle=document.getElementById('m-deliver-vehicle'),mDeliverTime=document.getElementById('m-deliver-time'),mPickupCustomer=document.getElementById('m-pickup-customer'),mPickupAddress=document.getElementById('m-pickup-address'),mPickupVehicle=document.getElementById('m-pickup-vehicle'),mPickupTime=document.getElementById('m-pickup-time'),mNotes=document.getElementById('m-notes'),mGesperrt=document.getElementById('m-gesperrt'),ottList=document.getElementById('ott-list'),ottEmpty=document.getElementById('ott-empty'),ottUpdated=document.getElementById('ott-updated'),ottText=document.getElementById('ott-text'),ottLw=document.getElementById('ott-lw'),pwCurrent=document.getElementById('pw-current'),pwNew=document.getElementById('pw-new'),pwNew2=document.getElementById('pw-new2'),pwError=document.getElementById('pw-error'),pwSuccess=document.getElementById('pw-success');
+init();
+</script>
+</body>
+</html>
