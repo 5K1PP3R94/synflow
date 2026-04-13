@@ -67,6 +67,7 @@ db.exec(`
 
     customer_phone TEXT DEFAULT '',
     driver_id INTEGER,
+    loaner_required INTEGER NOT NULL DEFAULT 0,
     loaner_vehicle_id INTEGER,
     status TEXT NOT NULL DEFAULT 'offen' CHECK(status IN ('offen','geplant','unterwegs','erledigt')),
     gesperrt INTEGER DEFAULT 0,
@@ -101,6 +102,7 @@ ensureTourColumn('pickup_vehicle', "TEXT DEFAULT ''");
 ensureTourColumn('pickup_time', "TEXT DEFAULT ''");
 ensureTourColumn('customer_phone', "TEXT DEFAULT ''");
 ensureTourColumn('driver_id', 'INTEGER');
+ensureTourColumn('loaner_required', 'INTEGER NOT NULL DEFAULT 0');
 ensureTourColumn('loaner_vehicle_id', 'INTEGER');
 ensureTourColumn('status', "TEXT NOT NULL DEFAULT 'offen'");
 ensureTourColumn('notes', "TEXT DEFAULT ''");
@@ -171,7 +173,7 @@ function emptyTour(date, slot, nr) {
     date, slot, tour_nr: nr,
     deliver_customer: '', deliver_address: '', deliver_vehicle: '', deliver_time: '',
     pickup_customer: '', pickup_address: '', pickup_vehicle: '', pickup_time: '',
-    customer_phone: '', driver_id: null, loaner_vehicle_id: null, status: 'offen',
+    customer_phone: '', driver_id: null, loaner_required: 0, loaner_vehicle_id: null, status: 'offen',
     gesperrt: 0, notes: '', updated_at: null, updated_by: '', driver: null, loaner_vehicle: null
   };
 }
@@ -369,7 +371,8 @@ app.put('/api/tours/:date/:slot/:nr', authWriter, (req, res) => {
 
   const b = req.body || {};
   const driverId = b.driver_id ? Number(b.driver_id) : null;
-  const loanerId = b.loaner_vehicle_id ? Number(b.loaner_vehicle_id) : null;
+  const loanerRequired = b.loaner_required ? 1 : 0;
+  const loanerId = loanerRequired && b.loaner_vehicle_id ? Number(b.loaner_vehicle_id) : null;
   const status = b.status || 'offen';
   if (!['offen','geplant','unterwegs','erledigt'].includes(status)) {
     return res.status(400).json({ error: 'Ungültiger Status' });
@@ -390,10 +393,10 @@ app.put('/api/tours/:date/:slot/:nr', authWriter, (req, res) => {
       date, slot, tour_nr,
       deliver_customer, deliver_address, deliver_vehicle, deliver_time,
       pickup_customer, pickup_address, pickup_vehicle, pickup_time,
-      customer_phone, driver_id, loaner_vehicle_id, status, gesperrt, notes,
+      customer_phone, driver_id, loaner_required, loaner_vehicle_id, status, gesperrt, notes,
       updated_at, updated_by
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?
     )
     ON CONFLICT(date, slot, tour_nr) DO UPDATE SET
       deliver_customer = excluded.deliver_customer,
@@ -406,6 +409,7 @@ app.put('/api/tours/:date/:slot/:nr', authWriter, (req, res) => {
       pickup_time = excluded.pickup_time,
       customer_phone = excluded.customer_phone,
       driver_id = excluded.driver_id,
+      loaner_required = excluded.loaner_required,
       loaner_vehicle_id = excluded.loaner_vehicle_id,
       status = excluded.status,
       gesperrt = excluded.gesperrt,
@@ -424,6 +428,7 @@ app.put('/api/tours/:date/:slot/:nr', authWriter, (req, res) => {
     (b.pickup_time || '').trim(),
     (b.customer_phone || '').trim(),
     driverId,
+    loanerRequired,
     loanerId,
     status,
     b.gesperrt ? 1 : 0,

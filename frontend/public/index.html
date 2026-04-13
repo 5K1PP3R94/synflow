@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,24 +7,54 @@
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@300;400;500;600&display=swap");
 
-:root{
-  --bg:#f0f2f7;
+:root[data-theme="light"]{
+  --bg:#eef1f7;
   --surface:#ffffff;
   --surface2:#f5f7fc;
-  --border:#dde1ed;
-  --text:#1a1d2e;
-  --muted:#7a82a0;
+  --surface3:#eef2f8;
+  --border:#d8deeb;
+  --text:#171b29;
+  --muted:#6f7897;
   --accent:#d0300c;
-  --accent2:#e07b00;
-  --green:#18a85e;
+  --accent2:#d88c16;
+  --green:#1aa861;
   --blue:#2b7de9;
   --danger:#c0392b;
-  --shadow:0 2px 12px rgba(0,0,0,.08);
+  --shadow:0 8px 24px rgba(17,22,38,.08);
   --header-bg:#ffffff;
+  --status-offen-bg:transparent;
+  --status-geplant-bg:rgba(216,140,22,.12);
+  --status-unterwegs-bg:rgba(43,125,233,.12);
+  --status-erledigt-bg:rgba(26,168,97,.12);
+  --gesperrt-fill:rgba(208,48,12,.12);
+  --gesperrt-border:#d0300c;
+}
+:root[data-theme="dark"]{
+  --bg:#0f1219;
+  --surface:#171c26;
+  --surface2:#1d2431;
+  --surface3:#242d3d;
+  --border:#313b51;
+  --text:#ecf0f8;
+  --muted:#9aa4bf;
+  --accent:#e1451d;
+  --accent2:#e8a128;
+  --green:#26c977;
+  --blue:#57a5ff;
+  --danger:#e35b4d;
+  --shadow:0 10px 28px rgba(0,0,0,.35);
+  --header-bg:#151a24;
+  --status-offen-bg:transparent;
+  --status-geplant-bg:rgba(232,161,40,.16);
+  --status-unterwegs-bg:rgba(87,165,255,.16);
+  --status-erledigt-bg:rgba(38,201,119,.16);
+  --gesperrt-fill:rgba(225,69,29,.18);
+  --gesperrt-border:#ff6b4a;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:"Barlow",sans-serif;background:var(--bg);color:var(--text)}
 button,input,textarea,select{font:inherit}
+body,button,input,textarea,select{transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease}
 #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
 .login-box,.modal,.panel,.tour-card{background:var(--surface);border:1px solid var(--border);border-radius:0;box-shadow:var(--shadow)}
 .login-box{width:100%;max-width:420px;padding:42px 36px;border-top:3px solid var(--accent)}
@@ -41,11 +71,13 @@ textarea{min-height:90px;resize:vertical}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{filter:brightness(.9)}
 .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--surface3)}
 .btn-danger{background:var(--danger);color:#fff}
 .btn-small{padding:6px 11px;font-size:12px}
 .error,.success{display:none;margin-top:12px;padding:8px 12px;border-left:3px solid}.error{background:rgba(208,48,12,.08);color:var(--accent);border-left-color:var(--accent)}.success{background:rgba(24,168,94,.08);color:var(--green);border-left-color:var(--green)}
 #app{display:none}
 .header{position:sticky;top:0;z-index:20;background:var(--header-bg);border-bottom:2px solid var(--accent);padding:10px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow)}
+.theme-toggle{display:inline-flex;align-items:center;gap:8px}
 .header .grow{flex:1}
 .user-pill,.badge{padding:5px 10px;border:1px solid var(--border);border-radius:0;background:var(--surface2);font-size:12px}
 .badge.ok{color:var(--green)}.badge.warn{color:var(--accent2)}.badge.offen{color:var(--muted)}
@@ -57,14 +89,22 @@ textarea{min-height:90px;resize:vertical}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:1200px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.grid{grid-template-columns:1fr}}
 .section-head{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .section-title{font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.tour-card{overflow:hidden;position:relative}
+.tour-card{overflow:hidden;position:relative;border-left:4px solid var(--border)}
+.tour-card.status-offen{border-left-color:var(--border)}
+.tour-card.status-geplant{border-left-color:var(--accent2)}
+.tour-card.status-unterwegs{border-left-color:var(--blue)}
+.tour-card.status-erledigt{border-left-color:var(--green)}
+.tour-card.gesperrt{background:var(--gesperrt-fill);border-color:var(--gesperrt-border);border-left-color:var(--gesperrt-border)}
+.tour-card.gesperrt .tour-top,.tour-card.gesperrt .tour-box,.tour-card.gesperrt .tour-footer{background:transparent}
 .tour-top{display:flex;justify-content:space-between;align-items:center;padding:8px 11px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.tour-headline{display:flex;align-items:center;gap:8px}
 .tour-body{padding:0;display:grid;gap:0}
 .tour-cols{display:grid;grid-template-columns:1fr 1fr;gap:0}@media(max-width:700px){.tour-cols{grid-template-columns:1fr}}
 .tour-box{padding:10px 12px;border-right:1px solid var(--border);background:var(--surface);min-height:140px}
 .tour-box:last-child{border-right:none}
 .tour-box h4{margin:0 0 8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.18em}
-.tour-meta{display:flex;gap:6px;flex-wrap:wrap}.mini{font-size:11px;color:var(--muted)}
+.tour-meta{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface)}.mini{font-size:11px;color:var(--muted)}
+.tour-footer{padding:10px 12px;display:grid;gap:8px;background:var(--surface)}
 .muted{color:var(--muted)} .empty{opacity:.8;font-style:italic}
 .card-actions{display:flex;gap:8px;flex-wrap:wrap}
 .table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}.table th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em;background:var(--surface2)}
@@ -74,10 +114,20 @@ textarea{min-height:90px;resize:vertical}
 .toast{position:fixed;right:18px;bottom:18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);padding:11px 18px;border-radius:0;transform:translateY(120px);transition:.25s;box-shadow:var(--shadow)}.toast.show{transform:translateY(0)}
 .ott-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:0;background:var(--surface2);margin-bottom:10px}@media(max-width:700px){.ott-item{grid-template-columns:1fr}}
 .status-chip{font-size:10px;font-weight:700;padding:2px 7px;border:1px solid;text-transform:uppercase;letter-spacing:.1em}
-.status-offen{color:var(--muted);border-color:var(--border)}
-.status-geplant{color:var(--accent2);border-color:var(--accent2);background:rgba(224,123,0,.08)}
-.status-unterwegs{color:var(--blue);border-color:var(--blue);background:rgba(43,125,233,.08)}
-.status-erledigt{color:var(--green);border-color:var(--green);background:rgba(24,168,94,.08)}
+.status-offen{color:var(--muted);border-color:var(--border);background:var(--status-offen-bg)}
+.status-geplant{color:var(--accent2);border-color:var(--accent2);background:var(--status-geplant-bg)}
+.status-unterwegs{color:var(--blue);border-color:var(--blue);background:var(--status-unterwegs-bg)}
+.status-erledigt{color:var(--green);border-color:var(--green);background:var(--status-erledigt-bg)}
+
+.switch-row{display:flex;align-items:center;gap:10px}
+.switch{position:relative;display:inline-block;width:44px;height:24px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--border);cursor:pointer}
+.slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.2);transition:.18s ease}
+.switch input:checked + .slider{background:rgba(208,48,12,.28)}
+.switch input:checked + .slider:before{transform:translateX(20px);background:var(--accent)}
+.theme-mini{font-size:12px;color:var(--muted)}
+.select-disabled{opacity:.45;pointer-events:none}
 </style>
 </head>
 <body>
@@ -106,6 +156,7 @@ textarea{min-height:90px;resize:vertical}
     <button class="btn btn-secondary btn-small" onclick="loadDate(todayStr())">Heute</button>
     <div class="grow"></div>
     <div class="user-pill" id="live-pill">Offline</div>
+    <button class="btn btn-secondary btn-small theme-toggle" onclick="toggleTheme()"><span id="theme-icon">🌙</span><span id="theme-label">Dunkel</span></button>
     <button class="btn btn-secondary btn-small" onclick="openPwModal()">Passwort</button>
     <button class="btn btn-secondary btn-small" id="admin-entry" style="display:none" onclick="showTab('admin')">Admin</button>
     <button class="btn btn-secondary btn-small" onclick="doLogout()">Abmelden</button>
@@ -166,9 +217,17 @@ textarea{min-height:90px;resize:vertical}
   <div class="row three">
     <div><label>Status</label><select id="m-status"><option value="offen">Offen</option><option value="geplant">Geplant</option><option value="unterwegs">Unterwegs</option><option value="erledigt">Erledigt</option></select></div>
     <div><label>Fahrer</label><select id="m-driver"></select></div>
-    <div><label>Leihwagen</label><select id="m-loaner"></select></div>
+    <div>
+      <label>Leihwagen erforderlich</label>
+      <div class="panel" style="padding:10px 12px">
+        <div class="switch-row">
+          <label class="switch"><input type="checkbox" id="m-loaner-required" onchange="syncLoanerState()"><span class="slider"></span></label>
+          <span class="theme-mini" id="loaner-required-label">Nein</span>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="row" style="margin-top:16px"><div><label>Kundentelefon</label><input id="m-customer-phone"></div></div>
+  <div class="row two" style="margin-top:16px"><div><label>Kundentelefon</label><input id="m-customer-phone"></div><div id="loaner-select-wrap"><label>Leihwagen zuweisen</label><select id="m-loaner"></select></div></div>
   <div class="row two" style="margin-top:16px">
     <div class="tour-box">
       <h4>Liefern</h4>
@@ -215,6 +274,9 @@ textarea{min-height:90px;resize:vertical}
 <script>
 let currentUser=null,currentDate=todayStr(),toursData={vormittag:[],nachmittag:[]},ottData={eintraege:[]},meta={drivers:[],loaners:[]},editingTour=null,editingEntity=null,ottEditIndex=null,ws=null;
 function todayStr(){return new Date().toISOString().slice(0,10)}
+function applyTheme(theme){document.documentElement.setAttribute('data-theme',theme);localStorage.setItem('synflow-theme',theme);document.getElementById('theme-icon').textContent=theme==='dark'?'☀️':'🌙';document.getElementById('theme-label').textContent=theme==='dark'?'Hell':'Dunkel'}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')}
+applyTheme(localStorage.getItem('synflow-theme')||'light')
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
 function fmtTime(iso){if(!iso) return ''; return new Date(iso).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}
 function showToast(msg,err=false){const el=document.getElementById('toast');el.textContent=msg;el.style.borderColor=err?'var(--danger)':'var(--line)';el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),3200)}
@@ -235,14 +297,44 @@ function fillSelects(){const dSel=document.getElementById('m-driver');const lSel
 function connectWS(){if(ws) ws.close(); const proto=location.protocol==='https:'?'wss':'ws'; ws=new WebSocket(`${proto}://${location.host}`); ws.onopen=()=>livePill.textContent='Live'; ws.onclose=()=>{livePill.textContent='Offline'; setTimeout(connectWS,3000)}; ws.onmessage=async e=>{const msg=JSON.parse(e.data); if(msg.type==='tour_updated'&&msg.data.date===currentDate){const slot=msg.data.slot; const idx=toursData[slot].findIndex(x=>x.tour_nr===msg.data.tour_nr); if(idx>=0)toursData[slot][idx]=msg.data; else toursData[slot].push(msg.data); renderTours()} if(['drivers_updated','loaners_updated'].includes(msg.type)){await loadMeta(); if(viewAdmin.style.display!=='none') await loadAdminData()} if(msg.type==='ottenschlag_updated'&&msg.data.date===currentDate){ottData=msg.data;renderOtt()}}}
 async function loadDate(d){currentDate=d;document.getElementById('date-input').value=d; const [t,o]=await Promise.all([api(`/api/tours/${d}`),api(`/api/ottenschlag/${d}`)]); toursData=t; ottData=o; renderTours(); renderOtt()}
 function changeDate(delta){const d=new Date(currentDate);d.setDate(d.getDate()+delta);loadDate(d.toISOString().slice(0,10))}
-function statusBadge(s){return `<span class="badge ${s==='geplant'?'warn':s==='erledigt'?'ok':'offen'}">${s}</span>`}
+function statusBadge(s){return `<span class="status-chip status-${s}">${s}</span>`}
 function renderTours(){['vormittag','nachmittag'].forEach(slot=>{const grid=document.getElementById('grid-'+slot);grid.innerHTML='';for(let nr=1;nr<=4;nr++){const t=(toursData[slot]||[]).find(x=>x.tour_nr===nr)||emptyTour(slot,nr);grid.insertAdjacentHTML('beforeend',tourCardHtml(t))}})}
-function emptyTour(slot,nr){return{slot,tour_nr:nr,deliver_customer:'',deliver_address:'',deliver_vehicle:'',deliver_time:'',pickup_customer:'',pickup_address:'',pickup_vehicle:'',pickup_time:'',customer_phone:'',driver:null,loaner_vehicle:null,status:'offen',gesperrt:0,notes:'',updated_at:null,updated_by:''}}
-function tourCardHtml(t){const canEdit=currentUser.role!=='reader'; return `<div class="tour-card"><div class="tour-top"><div><strong>Tour ${t.tour_nr}</strong></div><div class="card-actions">${statusBadge(t.status)} ${t.gesperrt?'<span class="badge">gesperrt</span>':''}</div></div><div class="tour-body"><div class="tour-meta"><span class="user-pill">${t.driver?esc(t.driver.name):'kein Fahrer'}</span><span class="user-pill">${t.loaner_vehicle?esc(t.loaner_vehicle.name):'kein Leihwagen'}</span>${t.customer_phone?`<span class="user-pill">☎ ${esc(t.customer_phone)}</span>`:''}</div><div class="tour-cols"><div class="tour-box"><h4>Liefern</h4>${tourPart(t.deliver_customer,t.deliver_address,t.deliver_vehicle,t.deliver_time)}</div><div class="tour-box"><h4>Abholen</h4>${tourPart(t.pickup_customer,t.pickup_address,t.pickup_vehicle,t.pickup_time)}</div></div>${t.notes?`<div class="mini">📝 ${esc(t.notes)}</div>`:''}<div class="mini">${t.updated_at?`${esc(t.updated_by)} · ${fmtTime(t.updated_at)}`:'Noch nicht bearbeitet'}</div>${canEdit?`<div class="card-actions"><button class="btn btn-primary btn-small" onclick="openTourModal('${t.slot}',${t.tour_nr})">Bearbeiten</button></div>`:''}</div></div>`}
+function emptyTour(slot,nr){return{slot,tour_nr:nr,deliver_customer:'',deliver_address:'',deliver_vehicle:'',deliver_time:'',pickup_customer:'',pickup_address:'',pickup_vehicle:'',pickup_time:'',customer_phone:'',driver:null,loaner_required:0,loaner_vehicle:null,status:'offen',gesperrt:0,notes:'',updated_at:null,updated_by:''}}
+function loanerBadge(t){
+  if(!t.loaner_required) return '<span class="user-pill">kein LW nötig</span>';
+  if(t.loaner_vehicle) return `<span class="user-pill">LW: ${esc(t.loaner_vehicle.name)}</span>`;
+  return '<span class="user-pill" style="border-color:var(--accent2);color:var(--accent2)">LW offen</span>';
+}
+function tourCardHtml(t){
+  const canEdit=currentUser.role!=='reader';
+  return `<div class="tour-card status-${t.status}${t.gesperrt?' gesperrt':''}">
+    <div class="tour-top">
+      <div class="tour-headline"><strong>Tour ${t.tour_nr}</strong>${t.gesperrt?'<span class="status-chip status-geplant" style="border-color:var(--gesperrt-border);color:var(--accent);background:transparent">gesperrt</span>':''}</div>
+      <div class="card-actions">${statusBadge(t.status)}</div>
+    </div>
+    <div class="tour-body">
+      <div class="tour-meta">
+        <span class="user-pill">${t.driver?esc(t.driver.name):'kein Fahrer'}</span>
+        ${loanerBadge(t)}
+        ${t.customer_phone?`<span class="user-pill">☎ ${esc(t.customer_phone)}</span>`:''}
+      </div>
+      <div class="tour-cols">
+        <div class="tour-box"><h4>Liefern</h4>${tourPart(t.deliver_customer,t.deliver_address,t.deliver_vehicle,t.deliver_time)}</div>
+        <div class="tour-box"><h4>Abholen</h4>${tourPart(t.pickup_customer,t.pickup_address,t.pickup_vehicle,t.pickup_time)}</div>
+      </div>
+      <div class="tour-footer">
+        ${t.notes?`<div class="mini">📝 ${esc(t.notes)}</div>`:''}
+        <div class="mini">${t.updated_at?`${esc(t.updated_by)} · ${fmtTime(t.updated_at)}`:'Noch nicht bearbeitet'}</div>
+        ${canEdit?`<div class="card-actions"><button class="btn btn-primary btn-small" onclick="openTourModal('${t.slot}',${t.tour_nr})">Bearbeiten</button></div>`:''}
+      </div>
+    </div>
+  </div>`
+}
 function tourPart(customer,address,vehicle,time){const parts=[]; if(customer) parts.push(`<div><strong>${esc(customer)}</strong></div>`); if(address) parts.push(`<div>${esc(address)}</div>`); if(vehicle) parts.push(`<div class="mini">🚗 ${esc(vehicle)}</div>`); if(time) parts.push(`<div class="mini">🕒 ${esc(time)}</div>`); return parts.length?parts.join(''):'<div class="empty">– frei –</div>'}
 
-function openTourModal(slot,nr){const t=(toursData[slot]||[]).find(x=>x.tour_nr===nr)||emptyTour(slot,nr); editingTour={slot,nr}; document.getElementById('tour-modal-title').textContent=`Tour ${nr} – ${slot}`; fillSelects(); mStatus.value=t.status||'offen'; mDriver.value=t.driver_id||t.driver?.id||''; mLoaner.value=t.loaner_vehicle_id||t.loaner_vehicle?.id||''; mCustomerPhone.value=t.customer_phone||''; mDeliverCustomer.value=t.deliver_customer||''; mDeliverAddress.value=t.deliver_address||''; mDeliverVehicle.value=t.deliver_vehicle||''; mDeliverTime.value=t.deliver_time||''; mPickupCustomer.value=t.pickup_customer||''; mPickupAddress.value=t.pickup_address||''; mPickupVehicle.value=t.pickup_vehicle||''; mPickupTime.value=t.pickup_time||''; mNotes.value=t.notes||''; mGesperrt.checked=!!t.gesperrt; document.getElementById('tour-modal').style.display='block'}
-async function saveTour(){try{const body={status:mStatus.value,driver_id:mDriver.value||null,loaner_vehicle_id:mLoaner.value||null,customer_phone:mCustomerPhone.value,deliver_customer:mDeliverCustomer.value,deliver_address:mDeliverAddress.value,deliver_vehicle:mDeliverVehicle.value,deliver_time:mDeliverTime.value,pickup_customer:mPickupCustomer.value,pickup_address:mPickupAddress.value,pickup_vehicle:mPickupVehicle.value,pickup_time:mPickupTime.value,notes:mNotes.value,gesperrt:mGesperrt.checked}; const t=await api(`/api/tours/${currentDate}/${editingTour.slot}/${editingTour.nr}`,{method:'PUT',body:JSON.stringify(body)}); const idx=toursData[editingTour.slot].findIndex(x=>x.tour_nr===editingTour.nr); if(idx>=0)toursData[editingTour.slot][idx]=t; else toursData[editingTour.slot].push(t); renderTours(); closeModal('tour-modal'); showToast('Tour gespeichert')}catch(e){showToast(e.message,true)}}
+function syncLoanerState(){const on=!!mLoanerRequired.checked; document.getElementById('loaner-required-label').textContent=on?'Ja':'Nein'; document.getElementById('loaner-select-wrap').classList.toggle('select-disabled',!on); if(!on) mLoaner.value='';}
+function openTourModal(slot,nr){const t=(toursData[slot]||[]).find(x=>x.tour_nr===nr)||emptyTour(slot,nr); editingTour={slot,nr}; document.getElementById('tour-modal-title').textContent=`Tour ${nr} – ${slot}`; fillSelects(); mStatus.value=t.status||'offen'; mDriver.value=t.driver_id||t.driver?.id||''; mLoanerRequired.checked=!!t.loaner_required; mLoaner.value=t.loaner_vehicle_id||t.loaner_vehicle?.id||''; mCustomerPhone.value=t.customer_phone||''; mDeliverCustomer.value=t.deliver_customer||''; mDeliverAddress.value=t.deliver_address||''; mDeliverVehicle.value=t.deliver_vehicle||''; mDeliverTime.value=t.deliver_time||''; mPickupCustomer.value=t.pickup_customer||''; mPickupAddress.value=t.pickup_address||''; mPickupVehicle.value=t.pickup_vehicle||''; mPickupTime.value=t.pickup_time||''; mNotes.value=t.notes||''; mGesperrt.checked=!!t.gesperrt; syncLoanerState(); document.getElementById('tour-modal').style.display='block'}
+async function saveTour(){try{const body={status:mStatus.value,driver_id:mDriver.value||null,loaner_required:mLoanerRequired.checked,loaner_vehicle_id:mLoanerRequired.checked?(mLoaner.value||null):null,customer_phone:mCustomerPhone.value,deliver_customer:mDeliverCustomer.value,deliver_address:mDeliverAddress.value,deliver_vehicle:mDeliverVehicle.value,deliver_time:mDeliverTime.value,pickup_customer:mPickupCustomer.value,pickup_address:mPickupAddress.value,pickup_vehicle:mPickupVehicle.value,pickup_time:mPickupTime.value,notes:mNotes.value,gesperrt:mGesperrt.checked}; const t=await api(`/api/tours/${currentDate}/${editingTour.slot}/${editingTour.nr}`,{method:'PUT',body:JSON.stringify(body)}); const idx=toursData[editingTour.slot].findIndex(x=>x.tour_nr===editingTour.nr); if(idx>=0)toursData[editingTour.slot][idx]=t; else toursData[editingTour.slot].push(t); renderTours(); closeModal('tour-modal'); showToast('Tour gespeichert')}catch(e){showToast(e.message,true)}}
 
 function renderOtt(){const items=ottData.eintraege||[]; ottList.innerHTML=''; ottEmpty.style.display=items.length?'none':'block'; items.forEach((it,i)=>{ottList.insertAdjacentHTML('beforeend',`<div class="ott-item"><div>${esc(it.text)}</div><div class="badge">${it.leihwagen?'Leihwagen dort':'ohne Leihwagen'}</div>${currentUser.role!=='reader'?`<div class="card-actions"><button class="btn btn-secondary btn-small" onclick="editOttEintrag(${i})">Bearbeiten</button><button class="btn btn-danger btn-small" onclick="deleteOttEintrag(${i})">Löschen</button></div>`:''}</div>`)}) ; ottUpdated.textContent=ottData.updated_at?`${ottData.updated_by} · ${fmtTime(ottData.updated_at)}`:''}
 function addOttEintrag(){ottEditIndex=null; ottText.value=''; ottLw.checked=false; document.getElementById('ott-modal').style.display='block'}
@@ -265,7 +357,7 @@ async function deleteLoaner(id,name){if(!confirm(`Leihwagen ${name} löschen?`))
 function openPwModal(){pwCurrent.value='';pwNew.value='';pwNew2.value='';pwError.style.display='none';pwSuccess.style.display='none';document.getElementById('pw-modal').style.display='block'}
 async function saveOwnPw(){pwError.style.display='none';pwSuccess.style.display='none'; if(!pwCurrent.value||!pwNew.value||!pwNew2.value){pwError.style.display='block';pwError.textContent='Alle Felder ausfüllen'; return} if(pwNew.value!==pwNew2.value){pwError.style.display='block';pwError.textContent='Passwörter stimmen nicht überein'; return} try{await api('/api/me/password',{method:'PUT',body:JSON.stringify({currentPassword:pwCurrent.value,newPassword:pwNew.value})}); pwSuccess.style.display='block';pwSuccess.textContent='Passwort geändert'}catch(e){pwError.style.display='block';pwError.textContent=e.message}}
 
-const loginUser=document.getElementById('login-user'),loginPass=document.getElementById('login-pass'),loginScreen=document.getElementById('login-screen'),app=document.getElementById('app'),hdrUser=document.getElementById('hdr-user'),adminEntry=document.getElementById('admin-entry'),tabAdmin=document.getElementById('tab-admin'),livePill=document.getElementById('live-pill'),viewPlan=document.getElementById('view-plan'),viewAdmin=document.getElementById('view-admin'),usersTbody=document.getElementById('users-tbody'),driversTbody=document.getElementById('drivers-tbody'),loanersTbody=document.getElementById('loaners-tbody'),entityTitle=document.getElementById('entity-title'),entityError=document.getElementById('entity-error'),mStatus=document.getElementById('m-status'),mDriver=document.getElementById('m-driver'),mLoaner=document.getElementById('m-loaner'),mCustomerPhone=document.getElementById('m-customer-phone'),mDeliverCustomer=document.getElementById('m-deliver-customer'),mDeliverAddress=document.getElementById('m-deliver-address'),mDeliverVehicle=document.getElementById('m-deliver-vehicle'),mDeliverTime=document.getElementById('m-deliver-time'),mPickupCustomer=document.getElementById('m-pickup-customer'),mPickupAddress=document.getElementById('m-pickup-address'),mPickupVehicle=document.getElementById('m-pickup-vehicle'),mPickupTime=document.getElementById('m-pickup-time'),mNotes=document.getElementById('m-notes'),mGesperrt=document.getElementById('m-gesperrt'),ottList=document.getElementById('ott-list'),ottEmpty=document.getElementById('ott-empty'),ottUpdated=document.getElementById('ott-updated'),ottText=document.getElementById('ott-text'),ottLw=document.getElementById('ott-lw'),pwCurrent=document.getElementById('pw-current'),pwNew=document.getElementById('pw-new'),pwNew2=document.getElementById('pw-new2'),pwError=document.getElementById('pw-error'),pwSuccess=document.getElementById('pw-success');
+const loginUser=document.getElementById('login-user'),loginPass=document.getElementById('login-pass'),loginScreen=document.getElementById('login-screen'),app=document.getElementById('app'),hdrUser=document.getElementById('hdr-user'),adminEntry=document.getElementById('admin-entry'),tabAdmin=document.getElementById('tab-admin'),livePill=document.getElementById('live-pill'),viewPlan=document.getElementById('view-plan'),viewAdmin=document.getElementById('view-admin'),usersTbody=document.getElementById('users-tbody'),driversTbody=document.getElementById('drivers-tbody'),loanersTbody=document.getElementById('loaners-tbody'),entityTitle=document.getElementById('entity-title'),entityError=document.getElementById('entity-error'),mStatus=document.getElementById('m-status'),mDriver=document.getElementById('m-driver'),mLoanerRequired=document.getElementById('m-loaner-required'),mLoaner=document.getElementById('m-loaner'),mCustomerPhone=document.getElementById('m-customer-phone'),mDeliverCustomer=document.getElementById('m-deliver-customer'),mDeliverAddress=document.getElementById('m-deliver-address'),mDeliverVehicle=document.getElementById('m-deliver-vehicle'),mDeliverTime=document.getElementById('m-deliver-time'),mPickupCustomer=document.getElementById('m-pickup-customer'),mPickupAddress=document.getElementById('m-pickup-address'),mPickupVehicle=document.getElementById('m-pickup-vehicle'),mPickupTime=document.getElementById('m-pickup-time'),mNotes=document.getElementById('m-notes'),mGesperrt=document.getElementById('m-gesperrt'),ottList=document.getElementById('ott-list'),ottEmpty=document.getElementById('ott-empty'),ottUpdated=document.getElementById('ott-updated'),ottText=document.getElementById('ott-text'),ottLw=document.getElementById('ott-lw'),pwCurrent=document.getElementById('pw-current'),pwNew=document.getElementById('pw-new'),pwNew2=document.getElementById('pw-new2'),pwError=document.getElementById('pw-error'),pwSuccess=document.getElementById('pw-success');
 init();
 </script>
 </body>
