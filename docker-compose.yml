@@ -6,7 +6,7 @@ services:
     container_name: synflow-v7-1-2
     restart: unless-stopped
     ports:
-      - "3007:3000"
+      - "3006:3000"
     volumes:
       - synflow-v7-1-2-data:/data
     environment:
