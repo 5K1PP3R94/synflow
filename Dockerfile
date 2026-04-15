@@ -1,21 +1,14 @@
-FROM node:20-alpine
-
-RUN apk add --no-cache python3 make g++
-
+FROM node:20-bookworm-slim
 WORKDIR /app
 
-COPY backend/package.json ./backend/package.json
-RUN cd backend && npm install --omit=dev
+COPY package*.json ./
+RUN npm install --omit=dev --no-audit --no-fund
 
-COPY backend/ ./backend/
-COPY frontend/ ./frontend/
+COPY backend ./backend
+COPY frontend ./frontend
 
-RUN mkdir -p /data
-
+ENV PORT=3000
+ENV DB_PATH=/data/synflow.db
 EXPOSE 3000
 
-ENV NODE_ENV=production
-ENV DB_PATH=/data/synflow.db
-ENV PORT=3000
-
-CMD ["node", "backend/server.js"]
+CMD ["npm", "start"]

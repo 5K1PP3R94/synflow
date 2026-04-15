@@ -1,117 +1,67 @@
-# SynFlow V6 – bereinigte Fassung
+# SynFlow V7.1 Modular
 
-SynFlow ist eine Web-App zur Disposition für Hol- & Bring-Service, Fahrer, Leihwagen und Tagesplanung.
+Diese Version ist bewusst in Module aufgeteilt:
 
-## Enthalten in dieser Fassung
+- Backend: Express + SQLite + getrennte Route/DB-Module
+- Frontend: ES Modules statt eine einzige HTML-Datei
 
-- Tourenplan mit 8 Touren pro Tag
-- getrennte Datenblöcke für **Liefern** und **Abholen**
-- Fahrerverwaltung
-- Leihwagenverwaltung
-- Fahrbefehle mit frei sortierbaren Schritten
-- Fahreransicht für mobile Nutzung
-- modulbasiertes Rollensystem:
-  - Dispo Hol&Bring
-  - Hol & Bring Fahrer
-  - Kundendienstberater
-  - Fahrzeugaufbereitung
-- Benutzerverwaltung mit Rechte-Stufen:
-  - sehen
-  - bearbeiten
-  - verwalten
-- Live-Updates via WebSocket
-- Passwortänderung
-- Ottenschlag-&-Umgebung-Liste
+## Demo-Logins
 
-## Wichtige Fixes in dieser bereinigten Version
+- Admin: `admin` / `admin123`
+- Dispo: `dispo` / `demo123`
+- Serviceberater Anna: `anna` / `demo123`
+- Aufbereitung: `clean` / `demo123`
 
-- robustere Frontend-Pfade im Backend
-- Docker-Struktur passend zu `backend/` und `frontend/public/`
-- sicherere Cookie-Konfiguration hinter Reverse Proxy
-- Warnhinweise für Standard-Secret / Standard-Admin-Passwort
-- sauberere Behandlung beim Löschen von Fahrern und Leihwagen
-- aktualisierte Dokumentation passend zum echten Rollensystem
+## Features in dieser Version
 
-## Standard-Login beim ersten Start
+- zentraler Fahrzeugvorgang (`jobs`)
+- Anlage durch Dispo oder Serviceberater
+- Zuweisung an Serviceberater
+- Reinigung ja/nein, Reinigungsart, Deadline
+- Statusfluss zwischen Dispo → Service → Reinigung → Dispo
+- getrennte Rollenansichten
+- modularer Frontend-Aufbau
 
-- Benutzer: `admin`
-- Passwort: `admin123`
+## Start lokal
 
-Unbedingt nach dem ersten Login ändern.
-
-## Deployment mit Docker / Portainer
-
-1. Stack oder Build-Kontext auf den Projektordner zeigen lassen
-2. `JWT_SECRET` in `docker-compose.yml` oder Portainer-Env ersetzen
-3. optional `ADMIN_USERNAME` und `ADMIN_PASSWORD` setzen
-4. Deployen
-5. Nach dem ersten Login Passwort ändern
-
-## Projektstruktur
-
-```text
-synflow_v6_fixed/
-├── backend/
-│   ├── package.json
-│   └── server.js
-├── frontend/
-│   └── public/
-│       └── index.html
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
+```bash
+npm install
+npm start
 ```
 
-## Datenbank
+## Docker
 
-SQLite-Datei im Docker-Volume `synflow-data`.
-
-## Nächste sinnvolle Ausbaustufen
-
-- Wochenansicht / Kalenderansicht
-- echte Workflows für Kundendienstberater
-- echte Workflows für Fahrzeugaufbereitung
-- Verfügbarkeiten / Abwesenheiten der Fahrer
-- Kunden- und Auftragsdatenbank
+```bash
+docker compose up -d --build
+```
 
 
-## V7 Schritt 1 – integriert auf der V6.1-Basis
+## Wichtige Hinweise für Deployment hinter Nginx Proxy Manager
 
-Diese Version ersetzt die bestehende H&B-Dispo nicht, sondern erweitert sie um **Fahrzeugvorgänge**.
+Diese Version nutzt `better-sqlite3`. Dafür wurde das Docker-Image auf `node:20-bookworm-slim` umgestellt, weil Alpine hier oft zu Build-/Runtime-Problemen führt.
 
-Neu:
-- Dispo-Tab **Fahrzeugvorgänge**
-- neue Tabelle `vehicle_jobs`
-- Serviceberater-Zuweisung
-- Reinigung ja/nein, Reinigungsart, Deadline
-- Statuslogik für Fahrzeugvorgänge
-- Serviceberater-Liste mit eigenen Fahrzeugen
-- Aufbereitungsliste für Fahrzeuge mit Reinigungsbedarf
-- Status-Historie pro Fahrzeugvorgang
+Außerdem ist `npm_default` als externes Docker-Netzwerk eingebunden, damit der Container direkt über Nginx Proxy Manager erreichbar ist, wenn du ihn per Containername proxyst.
 
-Bestehendes bleibt:
-- Tourenplanung
-- Fahrer
-- Leihwagen
-- Fahrbefehle
-- Fahreransicht
-- Rollen-/Adminlogik
-
-Wichtig:
-- Die Kopplung **Tour ↔ Fahrzeugvorgang** ist in dieser Stufe noch **nicht automatisch**.
-- Diese Version ist die erste integrierte Ausbaustufe, nicht die finale V7.
+Falls du einen alten fehlerhaften Build hast:
+1. alten Stack entfernen
+2. altes Image löschen
+3. neu deployen mit Build ohne Cache
 
 
-## V7 Schritt 2 – Touren mit Fahrzeugvorgängen gekoppelt
+## Wichtiger Hinweis bei Login-Problemen
 
-Neu in dieser Stufe:
-- `tours.job_id` und `tours.tour_kind`
-- Tour kann mit einem Fahrzeugvorgang verknüpft werden
-- Tourstatus aktualisiert den Fahrzeugstatus automatisch
+Wenn die Login-Seite geladen wird, aber keine Anmeldung funktioniert:
 
-Regeln:
-- Abholung `geplant` → `abholung_geplant`
-- Abholung `unterwegs` → `unterwegs_zu_uns`
-- Abholung `erledigt` → `bei_serviceberater` (oder `eingetroffen`, wenn kein Serviceberater zugewiesen ist)
-- Auslieferung `geplant` / `unterwegs` → `auslieferung_geplant`
-- Auslieferung `erledigt` → `abgeschlossen`
+1. alten Stack vollständig löschen
+2. altes Volume löschen (oder dieses Paket mit neuem Volume deployen)
+3. neu bauen ohne Cache
+4. `https://DEINE-DOMAIN/api/health` testen
+
+Typische Ursache ist eine alte DB aus einem früheren Build oder altes Session-Cookie.
+
+
+## V7.1.2 Schema-Fix
+
+Diese Version ist toleranter gegenüber älteren oder teilweise abweichenden SQLite-Volumes.
+Wenn ein Login scheinbar klappt, danach aber `HTTP 500` erscheint, lag es sehr wahrscheinlich an einem alten `jobs`- oder `users`-Schema.
+Diese Version ergänzt fehlende Spalten automatisch.
