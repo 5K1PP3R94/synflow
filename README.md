@@ -1,67 +1,88 @@
-# SynFlow V7.1 Modular
+# SynFlow V6 – bereinigte Fassung
 
-Diese Version ist bewusst in Module aufgeteilt:
+SynFlow ist eine Web-App zur Disposition für Hol- & Bring-Service, Fahrer, Leihwagen und Tagesplanung.
 
-- Backend: Express + SQLite + getrennte Route/DB-Module
-- Frontend: ES Modules statt eine einzige HTML-Datei
+## Enthalten in dieser Fassung
 
-## Demo-Logins
+- Tourenplan mit 8 Touren pro Tag
+- getrennte Datenblöcke für **Liefern** und **Abholen**
+- Fahrerverwaltung
+- Leihwagenverwaltung
+- Fahrbefehle mit frei sortierbaren Schritten
+- Fahreransicht für mobile Nutzung
+- modulbasiertes Rollensystem:
+  - Dispo Hol&Bring
+  - Hol & Bring Fahrer
+  - Kundendienstberater
+  - Fahrzeugaufbereitung
+- Benutzerverwaltung mit Rechte-Stufen:
+  - sehen
+  - bearbeiten
+  - verwalten
+- Live-Updates via WebSocket
+- Passwortänderung
+- Ottenschlag-&-Umgebung-Liste
 
-- Admin: `admin` / `admin123`
-- Dispo: `dispo` / `demo123`
-- Serviceberater Anna: `anna` / `demo123`
-- Aufbereitung: `clean` / `demo123`
+## Wichtige Fixes in dieser bereinigten Version
 
-## Features in dieser Version
+- robustere Frontend-Pfade im Backend
+- Docker-Struktur passend zu `backend/` und `frontend/public/`
+- sicherere Cookie-Konfiguration hinter Reverse Proxy
+- Warnhinweise für Standard-Secret / Standard-Admin-Passwort
+- sauberere Behandlung beim Löschen von Fahrern und Leihwagen
+- aktualisierte Dokumentation passend zum echten Rollensystem
 
-- zentraler Fahrzeugvorgang (`jobs`)
-- Anlage durch Dispo oder Serviceberater
-- Zuweisung an Serviceberater
-- Reinigung ja/nein, Reinigungsart, Deadline
-- Statusfluss zwischen Dispo → Service → Reinigung → Dispo
-- getrennte Rollenansichten
-- modularer Frontend-Aufbau
+## Standard-Login beim ersten Start
 
-## Start lokal
+- Benutzer: `admin`
+- Passwort: `admin123`
 
-```bash
-npm install
-npm start
+Unbedingt nach dem ersten Login ändern.
+
+## Deployment mit Docker / Portainer
+
+1. Stack oder Build-Kontext auf den Projektordner zeigen lassen
+2. `JWT_SECRET` in `docker-compose.yml` oder Portainer-Env ersetzen
+3. optional `ADMIN_USERNAME` und `ADMIN_PASSWORD` setzen
+4. Deployen
+5. Nach dem ersten Login Passwort ändern
+
+## Projektstruktur
+
+```text
+synflow_v6_fixed/
+├── backend/
+│   ├── package.json
+│   └── server.js
+├── frontend/
+│   └── public/
+│       └── index.html
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
 ```
 
-## Docker
+## Datenbank
 
-```bash
-docker compose up -d --build
-```
+SQLite-Datei im Docker-Volume `synflow-data`.
 
+## Nächste sinnvolle Ausbaustufen
 
-## Wichtige Hinweise für Deployment hinter Nginx Proxy Manager
-
-Diese Version nutzt `better-sqlite3`. Dafür wurde das Docker-Image auf `node:20-bookworm-slim` umgestellt, weil Alpine hier oft zu Build-/Runtime-Problemen führt.
-
-Außerdem ist `npm_default` als externes Docker-Netzwerk eingebunden, damit der Container direkt über Nginx Proxy Manager erreichbar ist, wenn du ihn per Containername proxyst.
-
-Falls du einen alten fehlerhaften Build hast:
-1. alten Stack entfernen
-2. altes Image löschen
-3. neu deployen mit Build ohne Cache
+- Wochenansicht / Kalenderansicht
+- echte Workflows für Kundendienstberater
+- echte Workflows für Fahrzeugaufbereitung
+- Verfügbarkeiten / Abwesenheiten der Fahrer
+- Kunden- und Auftragsdatenbank
 
 
-## Wichtiger Hinweis bei Login-Problemen
+## V7 Ausbau – Schritt 1 auf V6.1.5-Basis
 
-Wenn die Login-Seite geladen wird, aber keine Anmeldung funktioniert:
+Diese Version erweitert die bestehende H&B-Struktur um zentrale Fahrzeugvorgänge, ohne Tourenplanung, Fahrbefehle, Fahreransicht oder Dispo-Basis zu ersetzen.
 
-1. alten Stack vollständig löschen
-2. altes Volume löschen (oder dieses Paket mit neuem Volume deployen)
-3. neu bauen ohne Cache
-4. `https://DEINE-DOMAIN/api/health` testen
-
-Typische Ursache ist eine alte DB aus einem früheren Build oder altes Session-Cookie.
-
-
-## V7.1.2 Schema-Fix
-
-Diese Version ist toleranter gegenüber älteren oder teilweise abweichenden SQLite-Volumes.
-Wenn ein Login scheinbar klappt, danach aber `HTTP 500` erscheint, lag es sehr wahrscheinlich an einem alten `jobs`- oder `users`-Schema.
-Diese Version ergänzt fehlende Spalten automatisch.
+Neu:
+- Tab **Fahrzeugvorgänge** für die Dispo
+- echter Bereich **Kundendienstberater**
+- echte digitale **Reinigungsliste** für die Fahrzeugaufbereitung
+- Fahrzeugvorgänge mit Kunde, KZ, Fahrzeug, Serviceberater, Reinigung, Deadline
+- Statuswechsel zwischen Dispo, Serviceberater und Aufbereitung
+- Status-Historie je Vorgang

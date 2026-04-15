@@ -3,23 +3,25 @@ version: '3.8'
 services:
   synflow-app:
     build: .
-    container_name: synflow-v7-1-2
+    container_name: synflow
     restart: unless-stopped
     ports:
       - "3006:3000"
     volumes:
-      - synflow-v7-1-2-data:/data
+      - synflow-data:/data
     environment:
-      - PORT=3000
-      - DB_PATH=/data/synflow.db
-      - JWT_SECRET=BITTE_AENDERN_SICHERER_SCHLUESSEL_2026
-      - NODE_ENV=production
+      PORT: "3000"
+      DB_PATH: /data/synflow.db
+      JWT_SECRET: BITTE_AENDERN_SICHERER_SCHLUESSEL_2026
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin123
+      NODE_ENV: production
     networks:
       - default
       - npm_default
 
 volumes:
-  synflow-v7-1-2-data:
+  synflow-data:
     driver: local
 
 networks:
