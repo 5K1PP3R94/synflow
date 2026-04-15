@@ -62,6 +62,12 @@ button,input,select,textarea{font:inherit}
 
 .permission-chip{display:inline-flex;align-items:center;padding:3px 8px;border:1px solid var(--line-strong);background:var(--panel-3);margin:2px 6px 2px 0;font-size:12px}.driver-mobile-card .dispatch-row{font-size:15px}.driver-mobile-card h4{font-size:26px}.driver-mobile-card .dispatch-list{gap:10px}.driver-mobile-card .dispatch-row{padding:14px}.module-grid-note{color:var(--muted);font-size:12px}.placeholder-hero{padding:20px;color:var(--muted)}
 
+.vehicle-link-pill{padding:6px 8px;border:1px solid color-mix(in srgb,var(--brand-teal) 48%, var(--line));background:color-mix(in srgb,var(--brand-teal) 14%, transparent);font-size:12px;color:var(--text)}
+.vehicle-link-pill strong{color:var(--brand-teal)}
+.tour-link-box{margin-top:12px;padding:12px;border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--panel-2))}
+.tour-link-box .form-grid{margin-top:10px}
+
+
 @media(max-width:1200px){.topbar{min-height:104px;padding:16px 18px}.brand-mark{max-width:min(40vw,360px)}}
 @media(max-width:900px){.topbar{min-height:auto;flex-wrap:wrap;align-items:center}.brand{width:100%}.brand-mark{width:320px;max-width:72vw}}
 @media(max-width:640px){.topbar{padding:14px 14px;gap:12px}.brand-mark{width:250px;max-width:78vw}.login-logo img{width:210px}}
@@ -309,6 +315,13 @@ button,input,select,textarea{font:inherit}
       <div class="field"><label>Leihwagen</label><label class="switch"><input id="m-loaner-required" type="checkbox" onchange="toggleLoanerSelect()"><span class="switch-slider"></span><span>Leihwagen erforderlich</span></label><select id="m-loaner" style="margin-top:10px"></select></div>
       <div class="field"><label>Tour sperren</label><label class="switch"><input id="m-gesperrt" type="checkbox"><span class="switch-slider"></span><span>Gesperrt markieren</span></label></div>
     </div>
+    <div class="tour-link-box">
+      <div class="field"><label>Fahrzeugvorgang verknüpfen</label><select id="m-job-id" onchange="handleTourJobChange()"></select></div>
+      <div class="form-grid">
+        <div class="field"><label>Tourtyp im Prozess</label><select id="m-tour-kind"><option value="">– kein Prozessschritt –</option><option value="pickup">Abholung zu uns</option><option value="delivery">Auslieferung zum Kunden</option></select></div>
+        <div class="field"><label>Hinweis</label><div class="soft-note">Wenn eine Tour mit einem Fahrzeugvorgang verknüpft ist, aktualisiert der Tourstatus automatisch den Fahrzeugstatus.</div></div>
+      </div>
+    </div>
     <div class="two-col">
       <div class="section" style="box-shadow:none"><div class="section-head"><h3>Liefern</h3></div><div class="modal-body">
         <div class="field"><label>Kunde</label><input id="m-deliver-customer"></div>
@@ -508,7 +521,7 @@ function connectWS(){
     if(msg.type==='ottenschlag_updated'&&msg.data.date===currentDate){ottData=msg.data;renderOtt();}
     if(['drivers_updated','loaners_updated'].includes(msg.type)){loadMeta().then(()=>{renderTours();renderDispatch();if(currentTab==='admin')loadAdmin();});}
     if(msg.type==='dispatch_updated'&&msg.data.date===currentDate){const idx=dispatchData.findIndex(x=>x.slot===msg.data.slot&&x.driver_id===msg.data.driver_id);if(idx>=0)dispatchData[idx]=msg.data;else dispatchData.push(msg.data);renderDispatch();}
-    if(msg.type==='vehicle_job_updated'){const idx=vehicleJobsData.findIndex(x=>x.id===msg.data.id);if(idx>=0)vehicleJobsData[idx]=msg.data;else vehicleJobsData.unshift(msg.data);renderVehicleJobs();renderAdvisorJobs();renderDetailingJobs();}
+    if(msg.type==='vehicle_job_updated'){const idx=vehicleJobsData.findIndex(x=>x.id===msg.data.id);if(idx>=0)vehicleJobsData[idx]=msg.data;else vehicleJobsData.unshift(msg.data);renderTours();renderVehicleJobs();renderAdvisorJobs();renderDetailingJobs();}
     }catch{}
   };
 }
@@ -603,6 +616,31 @@ function getStatusPill(status){return `<span class="status-pill ${status}">${sta
 function getLoanerLabel(t){if(!t.loaner_required) return '<span class="meta-pill">LW: <strong>nicht nötig</strong></span>';if(t.loaner_vehicle) return `<span class="meta-pill">LW: <strong>${esc(t.loaner_vehicle.name)}</strong></span>`;return '<span class="meta-pill" style="border-color:var(--warning);color:var(--warning)">LW offen</span>'}
 function cardBlock(title,time,customer,address,vehicle,phone){const has=customer||address||vehicle||phone||time;return `<div class="mini-card"><div class="mini-head"><span>${title}</span><span>${esc(time||'')}</span></div><div class="mini-value ${has?'':'empty'}">${has?[customer&&`<strong>${esc(customer)}</strong>`,vehicle&&`<div>${esc(vehicle)}</div>`,address&&`<div>${esc(address)}</div>`,phone&&`<div>☎ ${esc(phone)}</div>`].filter(Boolean).join(''):'– frei –'}</div></div>`;}
 
+
+function vehicleJobShortLabel(job){
+  if(!job) return '–';
+  const parts=[job.customer_name||'', job.plate||'', job.vehicle_label||''].filter(Boolean);
+  return parts.join(' · ') || `Vorgang #${job.id}`;
+}
+function fillTourJobOptions(selectedId=''){
+  const options=['<option value="">– kein Fahrzeugvorgang –</option>'];
+  const rows=[...vehicleJobsData].sort((a,b)=>String(a.customer_name||'').localeCompare(String(b.customer_name||''),'de'));
+  for(const j of rows){
+    options.push(`<option value="${j.id}">#${j.id} · ${esc(vehicleJobShortLabel(j))}</option>`);
+  }
+  $('m-job-id').innerHTML=options.join('');
+  $('m-job-id').value=selectedId?String(selectedId):'';
+}
+function handleTourJobChange(){
+  const hasJob=!!$('m-job-id').value;
+  if(!hasJob) $('m-tour-kind').value='';
+}
+function getTourJobBadge(t){
+  if(!t.linked_job) return '';
+  const label=t.tour_kind==='pickup'?'Abholung':'Auslieferung';
+  return `<span class="vehicle-link-pill"><strong>${label}</strong> · ${esc(t.linked_job.customer_name||t.linked_job.vehicle_label||('Vorgang #'+t.job_id))}${t.linked_job.plate?` · ${esc(t.linked_job.plate)}`:''}</span>`;
+}
+
 function renderTours(){
   if(!hasModule('dispo_holbring','view')) return;
   ['vormittag','nachmittag'].forEach(slot=>{
@@ -611,7 +649,7 @@ function renderTours(){
       const t=(toursData[slot]||[]).find(x=>x.tour_nr===nr)||{date:currentDate,slot,tour_nr:nr,status:'offen'};
       const el=document.createElement('div');
       el.className=`tour-card status-${t.status||'offen'} ${t.gesperrt?'gesperrt':''}`;
-      el.innerHTML=`<div class="tour-top"><div><div class="tour-title">Tour ${nr}</div><div class="tour-sub">${slot}</div></div>${getStatusPill(t.status||'offen')}</div><div class="tour-body">${cardBlock('Liefern',t.deliver_time,t.deliver_customer,t.deliver_address,t.deliver_vehicle,t.deliver_phone)}${cardBlock('Abholen',t.pickup_time,t.pickup_customer,t.pickup_address,t.pickup_vehicle,t.pickup_phone)}</div><div style="padding:0 14px 14px"><div class="tour-meta">${t.driver?`<span class="meta-pill">Fahrer: <strong>${esc(t.driver.name)}</strong></span>`:''}${getLoanerLabel(t)}${t.notes?`<span class="meta-pill">Notiz: <strong>${esc(t.notes)}</strong></span>`:''}${t.gesperrt?`<span class="meta-pill" style="border-color:var(--danger);color:#fff;background:var(--danger)">Tour gesperrt</span>`:''}</div></div><button class="panel-btn btn-sm" style="position:absolute;right:10px;bottom:10px" ${hasModule('dispo_holbring','edit')?'':'disabled'} onclick="openTourModal('${slot}',${nr})">Bearbeiten</button>`;
+      el.innerHTML=`<div class="tour-top"><div><div class="tour-title">Tour ${nr}</div><div class="tour-sub">${slot}</div></div>${getStatusPill(t.status||'offen')}</div><div class="tour-body">${cardBlock('Liefern',t.deliver_time,t.deliver_customer,t.deliver_address,t.deliver_vehicle,t.deliver_phone)}${cardBlock('Abholen',t.pickup_time,t.pickup_customer,t.pickup_address,t.pickup_vehicle,t.pickup_phone)}</div><div style="padding:0 14px 14px"><div class="tour-meta">${getTourJobBadge(t)}${t.driver?`<span class="meta-pill">Fahrer: <strong>${esc(t.driver.name)}</strong></span>`:''}${getLoanerLabel(t)}${t.notes?`<span class="meta-pill">Notiz: <strong>${esc(t.notes)}</strong></span>`:''}${t.gesperrt?`<span class="meta-pill" style="border-color:var(--danger);color:#fff;background:var(--danger)">Tour gesperrt</span>`:''}</div></div><button class="panel-btn btn-sm" style="position:absolute;right:10px;bottom:10px" ${hasModule('dispo_holbring','edit')?'':'disabled'} onclick="openTourModal('${slot}',${nr})">Bearbeiten</button>`;
       grid.appendChild(el);
     }
   });
@@ -631,6 +669,8 @@ function openTourModal(slot,nr){
   $('m-loaner').value=(t.loaner_required&&t.loaner_vehicle_id)?t.loaner_vehicle_id:'';
   toggleLoanerSelect();
   $('m-gesperrt').checked=!!t.gesperrt;
+  fillTourJobOptions(t.job_id||'');
+  $('m-tour-kind').value=t.tour_kind||'';
   ['deliver-customer','deliver-address','deliver-vehicle','deliver-time','deliver-phone','pickup-customer','pickup-address','pickup-vehicle','pickup-time','pickup-phone','notes'].forEach(key=>{
     const el=$('m-'+key);if(el) el.value=t[key.replace(/-/g,'_')]||'';
   });
@@ -659,8 +699,11 @@ async function saveTour(){
       pickup_vehicle:$('m-pickup-vehicle').value,
       pickup_time:$('m-pickup-time').value,
       pickup_phone:$('m-pickup-phone').value,
-      notes:$('m-notes').value
+      notes:$('m-notes').value,
+      job_id:$('m-job-id').value?Number($('m-job-id').value):null,
+      tour_kind:$('m-tour-kind').value
     };
+    if(body.job_id && !body.tour_kind) throw new Error('Bitte Tourtyp für den verknüpften Fahrzeugvorgang wählen');
     const updated=await api(`/api/tours/${currentDate}/${editingTour.slot}/${editingTour.nr}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const arr=toursData[editingTour.slot];const idx=arr.findIndex(t=>t.tour_nr===editingTour.nr);
     if(idx>=0) arr[idx]=updated;else arr.push(updated);
@@ -907,7 +950,7 @@ function fillVehicleStatusOptions(){const sel=$('job-filter-status');const modal
 function fillAdvisorOptions(){const options=['<option value="">– auswählen –</option>'].concat((meta.advisors||[]).map(a=>`<option value="${a.id}">${esc(a.display_name||a.username)}</option>`));$('vj-advisor').innerHTML=options.join('');$('job-filter-advisor').innerHTML='<option value="">Alle Serviceberater</option>'+(meta.advisors||[]).map(a=>`<option value="${a.id}">${esc(a.display_name||a.username)}</option>`).join('');}
 function toggleVehicleCleaningFields(){const on=$('vj-cleaning-required').checked;$('vj-cleaning-type').disabled=!on;$('vj-deadline').disabled=!on;}
 function filteredVehicleJobs(){let rows=[...vehicleJobsData];const status=$('job-filter-status')?.value||'';const advisor=$('job-filter-advisor')?.value||'';if(status) rows=rows.filter(r=>r.status===status);if(advisor) rows=rows.filter(r=>String(r.advisor_user_id||'')===advisor);return rows;}
-function renderVehicleJobs(){const body=$('vehicle-jobs-tbody');if(!body) return;fillVehicleStatusOptions();fillAdvisorOptions();const rows=filteredVehicleJobs();$('vehicle-jobs-empty').classList.toggle('hidden',rows.length>0);body.innerHTML=rows.map(j=>`<tr><td><strong>${esc(j.customer_name)}</strong><br><small>${esc(j.phone||'')}</small></td><td>${esc(j.vehicle_label||'–')}<br><small>${esc(j.plate||'')}</small></td><td><span class="vehicle-status">${vehicleStatusLabel(j.status)}</span></td><td>${esc(j.advisor?.name||'–')}</td><td>${j.cleaning_required?`<strong>${esc(j.cleaning_type||'ja')}</strong>`:'<span style="color:var(--muted)">nein</span>'}</td><td>${fmtDateTime(j.deadline)}</td><td><div class="cluster"><button class="panel-btn btn-sm" onclick="openVehicleJobModal(${j.id})">Bearbeiten</button>${j.status!=='abgeschlossen'?`<button class="btn btn-primary btn-sm" onclick="quickVehicleStatus(${j.id},'bereit_fuer_auslieferung')">Freigeben</button>`:''}</div></td></tr>`).join('');}
+function renderVehicleJobs(){const body=$('vehicle-jobs-tbody');if(!body) return;fillVehicleStatusOptions();fillAdvisorOptions();const rows=filteredVehicleJobs();$('vehicle-jobs-empty').classList.toggle('hidden',rows.length>0);body.innerHTML=rows.map(j=>{const linkedTours=[];for(const slot of ['vormittag','nachmittag']){for(const t of (toursData[slot]||[])){if(Number(t.job_id)===Number(j.id)) linkedTours.push(`Tour ${t.tour_nr} ${slot} (${t.tour_kind==='pickup'?'Abholung':'Auslieferung'})`);}}return `<tr><td><strong>${esc(j.customer_name)}</strong><br><small>${esc(j.phone||'')}</small></td><td>${esc(j.vehicle_label||'–')}<br><small>${esc(j.plate||'')}</small>${linkedTours.length?`<div class="soft-note" style="margin-top:6px">${esc(linkedTours.join(', '))}</div>`:''}</td><td><span class="vehicle-status">${vehicleStatusLabel(j.status)}</span></td><td>${esc(j.advisor?.name||'–')}</td><td>${j.cleaning_required?`<strong>${esc(j.cleaning_type||'ja')}</strong>`:'<span style="color:var(--muted)">nein</span>'}</td><td>${fmtDateTime(j.deadline)}</td><td><div class="cluster"><button class="panel-btn btn-sm" onclick="openVehicleJobModal(${j.id})">Bearbeiten</button>${j.status!=='abgeschlossen'?`<button class="btn btn-primary btn-sm" onclick="quickVehicleStatus(${j.id},'bereit_fuer_auslieferung')">Freigeben</button>`:''}</div></td></tr>`}).join('');}
 function advisorActions(j){const out=[];if(j.status==='eingetroffen'||j.status==='neu') out.push(`<button class="panel-btn btn-sm" onclick="quickVehicleStatus(${j.id},'bei_serviceberater')">Übernehmen</button>`);if(j.cleaning_required&&j.status!=='bereit_fuer_reinigung'&&j.status!=='in_reinigung'&&j.status!=='reinigung_fertig') out.push(`<button class="btn btn-primary btn-sm" onclick="quickVehicleStatus(${j.id},'bereit_fuer_reinigung')">Zur Reinigung</button>`);if(j.status!=='service_fertig'&&j.status!=='bereit_fuer_auslieferung'&&!j.cleaning_required) out.push(`<button class="btn btn-primary btn-sm" onclick="quickVehicleStatus(${j.id},'service_fertig')">Service fertig</button>`);out.push(`<button class="panel-btn btn-sm" onclick="openVehicleJobModal(${j.id})">Bearbeiten</button>`);return out.join('');}
 function renderAdvisorJobs(){const wrap=$('advisor-jobs');if(!wrap) return;const rows=vehicleJobsData.filter(j=>!currentUser||currentUser.role==='admin'||j.advisor_user_id===currentUser.id);$('advisor-jobs-empty').classList.toggle('hidden',rows.length>0);wrap.innerHTML=rows.map(j=>`<div class="vehicle-card"><div class="vehicle-card-head"><div><div class="vehicle-title">${esc(j.customer_name)}</div><small>${esc(j.vehicle_label||'–')} · ${esc(j.plate||'')}</small></div><span class="vehicle-status">${vehicleStatusLabel(j.status)}</span></div><div class="vehicle-grid"><div><strong>Telefon</strong><br>${esc(j.phone||'–')}</div><div><strong>Fertig bis</strong><br>${fmtDateTime(j.deadline)}</div><div><strong>Reinigung</strong><br>${j.cleaning_required?esc(j.cleaning_type||'ja'):'nein'}</div><div><strong>H&B</strong><br>${j.hb_required?'ja':'nein'}</div></div><div>${j.notes?`<div class="vehicle-chip">Dispo: ${esc(j.notes)}</div>`:''}${j.service_notes?`<div class="vehicle-chip">Service: ${esc(j.service_notes)}</div>`:''}</div><div class="cluster">${advisorActions(j)}</div></div>`).join('');}
 function detailingActions(j){const out=[];if(j.status==='bereit_fuer_reinigung') out.push(`<button class="panel-btn btn-sm" onclick="quickVehicleStatus(${j.id},'in_reinigung')">Reinigung starten</button>`);if(j.status==='in_reinigung') out.push(`<button class="btn btn-primary btn-sm" onclick="quickVehicleStatus(${j.id},'reinigung_fertig')">Reinigung fertig</button>`);out.push(`<button class="panel-btn btn-sm" onclick="openVehicleJobModal(${j.id})">Details</button>`);return out.join('');}

@@ -100,3 +100,18 @@ Bestehendes bleibt:
 Wichtig:
 - Die Kopplung **Tour ↔ Fahrzeugvorgang** ist in dieser Stufe noch **nicht automatisch**.
 - Diese Version ist die erste integrierte Ausbaustufe, nicht die finale V7.
+
+
+## V7 Schritt 2 – Touren mit Fahrzeugvorgängen gekoppelt
+
+Neu in dieser Stufe:
+- `tours.job_id` und `tours.tour_kind`
+- Tour kann mit einem Fahrzeugvorgang verknüpft werden
+- Tourstatus aktualisiert den Fahrzeugstatus automatisch
+
+Regeln:
+- Abholung `geplant` → `abholung_geplant`
+- Abholung `unterwegs` → `unterwegs_zu_uns`
+- Abholung `erledigt` → `bei_serviceberater` (oder `eingetroffen`, wenn kein Serviceberater zugewiesen ist)
+- Auslieferung `geplant` / `unterwegs` → `auslieferung_geplant`
+- Auslieferung `erledigt` → `abgeschlossen`

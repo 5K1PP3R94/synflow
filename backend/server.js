@@ -174,9 +174,22 @@ function mapTour(row) {
   const mapped = { ...row };
   mapped.driver = mapped.driver_id ? { id: mapped.driver_id, name: mapped.driver_name || '' } : null;
   mapped.loaner_vehicle = mapped.loaner_vehicle_id ? { id: mapped.loaner_vehicle_id, name: mapped.loaner_name || '', plate: mapped.loaner_plate || '' } : null;
+  mapped.linked_job = mapped.job_id ? {
+    id: mapped.job_id,
+    customer_name: mapped.linked_customer_name || '',
+    plate: mapped.linked_plate || '',
+    vehicle_label: mapped.linked_vehicle_label || '',
+    status: mapped.linked_job_status || '',
+    deadline: mapped.linked_deadline || ''
+  } : null;
   delete mapped.driver_name;
   delete mapped.loaner_name;
   delete mapped.loaner_plate;
+  delete mapped.linked_customer_name;
+  delete mapped.linked_plate;
+  delete mapped.linked_vehicle_label;
+  delete mapped.linked_job_status;
+  delete mapped.linked_deadline;
   return mapped;
 }
 function emptyTour(date, slot, nr) {
@@ -185,7 +198,7 @@ function emptyTour(date, slot, nr) {
     deliver_customer: '', deliver_address: '', deliver_vehicle: '', deliver_time: '', deliver_phone: '',
     pickup_customer: '', pickup_address: '', pickup_vehicle: '', pickup_time: '', pickup_phone: '',
     driver_id: null, loaner_required: 0, loaner_vehicle_id: null, status: 'offen', gesperrt: 0, notes: '',
-    updated_at: null, updated_by: '', driver: null, loaner_vehicle: null
+    job_id: null, tour_kind: '', updated_at: null, updated_by: '', driver: null, loaner_vehicle: null, linked_job: null
   };
 }
 function normalizeDispatchRefs(raw) { try { return JSON.parse(raw || '[]'); } catch { return []; } }
@@ -298,11 +311,68 @@ function sanitizeVehicleJobBody(body = {}) {
   };
 }
 
+
+function syncVehicleJobFromTour(tour, changedByUserId) {
+  const jobId = tour?.job_id ? Number(tour.job_id) : null;
+  if (!jobId) return null;
+  const job = db.prepare('SELECT * FROM vehicle_jobs WHERE id = ?').get(jobId);
+  if (!job) return null;
+
+  const kind = String(tour.tour_kind || '').trim();
+  if (!['pickup', 'delivery'].includes(kind)) return null;
+
+  let nextStatus = null;
+  let note = '';
+  if (kind === 'pickup') {
+    if (tour.status === 'geplant') {
+      nextStatus = VEHICLE_JOB_STATUS.ABHOLUNG_GEPLANT;
+      note = `Abholung geplant · Tour ${tour.tour_nr} ${tour.slot}`;
+    } else if (tour.status === 'unterwegs') {
+      nextStatus = VEHICLE_JOB_STATUS.UNTERWEGS_ZU_UNS;
+      note = `Abholung unterwegs · Tour ${tour.tour_nr} ${tour.slot}`;
+    } else if (tour.status === 'erledigt') {
+      nextStatus = job.advisor_user_id ? VEHICLE_JOB_STATUS.BEI_SERVICEBERATER : VEHICLE_JOB_STATUS.EINGETROFFEN;
+      note = `Abholung abgeschlossen · Tour ${tour.tour_nr} ${tour.slot}`;
+    } else if (tour.status === 'offen') {
+      nextStatus = VEHICLE_JOB_STATUS.NEU;
+      note = `Abholung wieder offen · Tour ${tour.tour_nr} ${tour.slot}`;
+    }
+  } else if (kind === 'delivery') {
+    if (tour.status === 'geplant' || tour.status === 'unterwegs') {
+      nextStatus = VEHICLE_JOB_STATUS.AUSLIEFERUNG_GEPLANT;
+      note = `Auslieferung geplant · Tour ${tour.tour_nr} ${tour.slot}`;
+    } else if (tour.status === 'erledigt') {
+      nextStatus = VEHICLE_JOB_STATUS.ABGESCHLOSSEN;
+      note = `Auslieferung abgeschlossen · Tour ${tour.tour_nr} ${tour.slot}`;
+    } else if (tour.status === 'offen') {
+      nextStatus = job.cleaning_required
+        ? (job.status === VEHICLE_JOB_STATUS.REINIGUNG_FERTIG ? VEHICLE_JOB_STATUS.BEREIT_FUER_AUSLIEFERUNG : job.status)
+        : VEHICLE_JOB_STATUS.BEREIT_FUER_AUSLIEFERUNG;
+      note = `Auslieferung wieder offen · Tour ${tour.tour_nr} ${tour.slot}`;
+    }
+  }
+
+  if (!nextStatus || nextStatus === job.status) {
+    const current = db.prepare(`${vehicleJobSelectSql} WHERE vj.id = ?`).get(jobId);
+    return current ? mapVehicleJob(current) : null;
+  }
+
+  db.prepare("UPDATE vehicle_jobs SET status = ?, updated_at = datetime('now') WHERE id = ?").run(nextStatus, jobId);
+  createVehicleHistory(jobId, job.status, nextStatus, changedByUserId, note);
+  const row = db.prepare(`${vehicleJobSelectSql} WHERE vj.id = ?`).get(jobId);
+  const mapped = mapVehicleJob(row);
+  broadcast('vehicle_job_updated', mapped);
+  return mapped;
+}
+
 const tourSelectSql = `
-  SELECT t.*, d.name AS driver_name, lv.name AS loaner_name, lv.plate AS loaner_plate
+  SELECT t.*, d.name AS driver_name, lv.name AS loaner_name, lv.plate AS loaner_plate,
+         vj.customer_name AS linked_customer_name, vj.plate AS linked_plate, vj.vehicle_label AS linked_vehicle_label,
+         vj.status AS linked_job_status, vj.deadline AS linked_deadline
   FROM tours t
   LEFT JOIN drivers d ON d.id = t.driver_id
   LEFT JOIN loaner_vehicles lv ON lv.id = t.loaner_vehicle_id
+  LEFT JOIN vehicle_jobs vj ON vj.id = t.job_id
 `;
 
 // Schema
@@ -369,6 +439,8 @@ db.exec(`
     pickup_time TEXT DEFAULT '',
     pickup_phone TEXT DEFAULT '',
     driver_id INTEGER,
+    job_id INTEGER,
+    tour_kind TEXT DEFAULT '',
     loaner_required INTEGER NOT NULL DEFAULT 0,
     loaner_vehicle_id INTEGER,
     status TEXT NOT NULL DEFAULT 'offen' CHECK(status IN ('offen','geplant','unterwegs','erledigt')),
@@ -378,6 +450,7 @@ db.exec(`
     updated_by TEXT DEFAULT '',
     UNIQUE(date, slot, tour_nr),
     FOREIGN KEY(driver_id) REFERENCES drivers(id),
+    FOREIGN KEY(job_id) REFERENCES vehicle_jobs(id),
     FOREIGN KEY(loaner_vehicle_id) REFERENCES loaner_vehicles(id)
   );
 
@@ -456,6 +529,8 @@ ensureColumn('tours', 'pickup_vehicle', "TEXT DEFAULT ''");
 ensureColumn('tours', 'pickup_time', "TEXT DEFAULT ''");
 ensureColumn('tours', 'pickup_phone', "TEXT DEFAULT ''");
 ensureColumn('tours', 'driver_id', 'INTEGER');
+ensureColumn('tours', 'job_id', 'INTEGER');
+ensureColumn('tours', 'tour_kind', "TEXT DEFAULT ''");
 ensureColumn('tours', 'loaner_required', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('tours', 'loaner_vehicle_id', 'INTEGER');
 ensureColumn('tours', 'status', "TEXT NOT NULL DEFAULT 'offen'");
@@ -864,12 +939,17 @@ app.put('/api/tours/:date/:slot/:nr', authModule(MODULES.DISPO, 'edit'), (req, r
   if (![1,2,3,4].includes(Number(nr))) return res.status(400).json({ error: 'Ungültige Tournummer' });
   const b = req.body || {};
   const driverId = b.driver_id ? Number(b.driver_id) : null;
+  const jobId = b.job_id ? Number(b.job_id) : null;
+  const tourKind = ['pickup','delivery'].includes(String(b.tour_kind || '')) ? String(b.tour_kind) : '';
   const loanerRequired = b.loaner_required ? 1 : 0;
   // FIX #7: loaner_vehicle_id wird nur übernommen wenn loaner_required UND Select-Wert gesetzt
   const loanerId = loanerRequired && b.loaner_vehicle_id ? Number(b.loaner_vehicle_id) : null;
   const status = b.status || 'offen';
   if (!['offen', 'geplant', 'unterwegs', 'erledigt'].includes(status)) return res.status(400).json({ error: 'Ungültiger Status' });
   if (driverId && !db.prepare('SELECT id FROM drivers WHERE id = ?').get(driverId)) return res.status(400).json({ error: 'Fahrer nicht gefunden' });
+  if (jobId && !db.prepare('SELECT id FROM vehicle_jobs WHERE id = ?').get(jobId)) return res.status(400).json({ error: 'Fahrzeugvorgang nicht gefunden' });
+  if (jobId && !tourKind) return res.status(400).json({ error: 'Bitte Tourtyp für den verknüpften Fahrzeugvorgang wählen' });
+  if (!jobId && tourKind) return res.status(400).json({ error: 'Bitte zuerst einen Fahrzeugvorgang wählen' });
   if (loanerId) {
     const loaner = db.prepare('SELECT id, status FROM loaner_vehicles WHERE id = ?').get(loanerId);
     if (!loaner) return res.status(400).json({ error: 'Leihwagen nicht gefunden' });
@@ -880,9 +960,9 @@ app.put('/api/tours/:date/:slot/:nr', authModule(MODULES.DISPO, 'edit'), (req, r
       date, slot, tour_nr,
       deliver_customer, deliver_address, deliver_vehicle, deliver_time, deliver_phone,
       pickup_customer, pickup_address, pickup_vehicle, pickup_time, pickup_phone,
-      driver_id, loaner_required, loaner_vehicle_id, status, gesperrt, notes,
+      driver_id, job_id, tour_kind, loaner_required, loaner_vehicle_id, status, gesperrt, notes,
       updated_at, updated_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
     ON CONFLICT(date, slot, tour_nr) DO UPDATE SET
       deliver_customer = excluded.deliver_customer,
       deliver_address = excluded.deliver_address,
@@ -895,6 +975,8 @@ app.put('/api/tours/:date/:slot/:nr', authModule(MODULES.DISPO, 'edit'), (req, r
       pickup_time = excluded.pickup_time,
       pickup_phone = excluded.pickup_phone,
       driver_id = excluded.driver_id,
+      job_id = excluded.job_id,
+      tour_kind = excluded.tour_kind,
       loaner_required = excluded.loaner_required,
       loaner_vehicle_id = excluded.loaner_vehicle_id,
       status = excluded.status,
@@ -914,9 +996,10 @@ app.put('/api/tours/:date/:slot/:nr', authModule(MODULES.DISPO, 'edit'), (req, r
     (b.pickup_vehicle || '').trim(),
     (b.pickup_time || '').trim(),
     (b.pickup_phone || '').trim(),
-    driverId, loanerRequired, loanerId, status, b.gesperrt ? 1 : 0, (b.notes || '').trim(), req.user.username
+    driverId, jobId, tourKind, loanerRequired, loanerId, status, b.gesperrt ? 1 : 0, (b.notes || '').trim(), req.user.username
   );
   const updated = mapTour(db.prepare(`${tourSelectSql} WHERE t.date = ? AND t.slot = ? AND t.tour_nr = ?`).get(date, slot, Number(nr)));
+  syncVehicleJobFromTour(updated, req.user.id);
   broadcast('tour_updated', updated);
   res.json(updated);
 });
