@@ -962,7 +962,7 @@ app.put('/api/tours/:date/:slot/:nr', authModule(MODULES.DISPO, 'edit'), (req, r
       pickup_customer, pickup_address, pickup_vehicle, pickup_time, pickup_phone,
       driver_id, job_id, tour_kind, loaner_required, loaner_vehicle_id, status, gesperrt, notes,
       updated_at, updated_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
     ON CONFLICT(date, slot, tour_nr) DO UPDATE SET
       deliver_customer = excluded.deliver_customer,
       deliver_address = excluded.deliver_address,
@@ -1059,7 +1059,7 @@ app.put('/api/dispatch/:date/:slot/:driverId', authModule(MODULES.DISPO, 'edit')
   const notes = normalizedSteps.filter(s => s.type === 'free_text').map(s => s.text).join('\n');
   db.prepare(`
     INSERT INTO dispatch_sheets (date, slot, driver_id, deliver_refs, pickup_refs, steps_json, notes, updated_at, updated_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
     ON CONFLICT(date, slot, driver_id) DO UPDATE SET
       deliver_refs = excluded.deliver_refs,
       pickup_refs = excluded.pickup_refs,

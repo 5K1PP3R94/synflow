@@ -308,7 +308,7 @@ button,input,select,textarea{font:inherit}
   <div class="modal-head"><h3 id="tour-modal-title" style="margin:0;font-family:'Noto Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">Tour bearbeiten</h3><button class="panel-btn btn-sm" onclick="closeModal('tour-modal')">✕</button></div>
   <div class="modal-body">
     <div class="form-grid">
-      <div class="field"><label>Status</label><select id="m-status"><option value="offen">Offen</option><option value="geplant">Geplant</option><option value="unterwegs">Unterwegs</option><option value="erledigt">Erledigt</option></select></div>
+      <div class="field"><label>Status</label><select id="m-status"><option value="offen">Offen</option><option value="geplant">Geplant</option><option value="unterwegs">Unterwegs</option><option value="erledigt">Erledigt</option></select><div class="soft-note">Beim Verknüpfen werden die Daten direkt in die bestehenden Liefer- oder Abholfelder übernommen.</div></div>
       <div class="field"><label>Fahrer</label><select id="m-driver"></select></div>
     </div>
     <div class="form-grid">
@@ -667,6 +667,8 @@ function openTourModal(slot,nr){
   $('m-loaner').innerHTML='<option value="">– kein Leihwagen –</option>'+(meta.loaners||[]).map(l=>`<option value="${l.id}">${esc(l.name)}${l.plate?` (${esc(l.plate)})`:''}` +'</option>').join('');
   // FIX #7: loaner_vehicle_id nur setzen wenn loaner_required
   $('m-loaner').value=(t.loaner_required&&t.loaner_vehicle_id)?t.loaner_vehicle_id:'';
+  if($('m-job-id') && editingTour){ $('m-job-id').value = editingTour.job_id || ''; }
+  if($('m-tour-kind') && editingTour){ $('m-tour-kind').value = editingTour.tour_kind || ''; }
   toggleLoanerSelect();
   $('m-gesperrt').checked=!!t.gesperrt;
   fillTourJobOptions(t.job_id||'');
@@ -679,7 +681,30 @@ function openTourModal(slot,nr){
 
 function toggleLoanerSelect(){const enabled=$('m-loaner-required').checked;$('m-loaner').disabled=!enabled;$('m-loaner').style.opacity=enabled?'1':'.55';if(!enabled)$('m-loaner').value='';}
 
-async function saveTour(){
+async 
+function getSelectedVehicleJob(id){
+  id=Number(id||0);
+  return (vehicleJobsData||[]).find(j=>Number(j.id)===id)||null;
+}
+function applyVehicleJobToTourFields(){
+  const jobId = $('m-job-id') ? $('m-job-id').value : '';
+  const kind = $('m-tour-kind') ? $('m-tour-kind').value : '';
+  const job = getSelectedVehicleJob(jobId);
+  if(!job || !kind) return;
+  if(kind === 'pickup'){
+    if($('m-pickup-customer')) $('m-pickup-customer').value = job.customer_name || '';
+    if($('m-pickup-address')) $('m-pickup-address').value = job.pickup_address || job.delivery_address || '';
+    if($('m-pickup-vehicle')) $('m-pickup-vehicle').value = [job.vehicle_label, job.plate].filter(Boolean).join(' · ');
+    if($('m-pickup-phone')) $('m-pickup-phone').value = job.phone || '';
+  } else if(kind === 'delivery'){
+    if($('m-deliver-customer')) $('m-deliver-customer').value = job.customer_name || '';
+    if($('m-deliver-address')) $('m-deliver-address').value = job.delivery_address || job.pickup_address || '';
+    if($('m-deliver-vehicle')) $('m-deliver-vehicle').value = [job.vehicle_label, job.plate].filter(Boolean).join(' · ');
+    if($('m-deliver-phone')) $('m-deliver-phone').value = job.phone || '';
+  }
+}
+
+function saveTour(){
   try{
     // FIX #7: loaner_vehicle_id explizit null wenn loaner nicht required
     const loanerRequired=$('m-loaner-required').checked;
@@ -700,6 +725,8 @@ async function saveTour(){
       pickup_time:$('m-pickup-time').value,
       pickup_phone:$('m-pickup-phone').value,
       notes:$('m-notes').value,
+    job_id:$('m-job-id') ? Number($('m-job-id').value||0) || null : null,
+    tour_kind:$('m-tour-kind') ? ($('m-tour-kind').value||'') : '',
       job_id:$('m-job-id').value?Number($('m-job-id').value):null,
       tour_kind:$('m-tour-kind').value
     };
